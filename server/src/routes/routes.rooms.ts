@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { createRoom, getPublicRooms, getRoomById } from '../db/room';
+import { createRoom, getPublicRooms, getRoomById, getRoomPlayers, joinRoom } from '../db/room';
 
 const router = Router();
 
@@ -43,6 +43,46 @@ router.get('/:id', async (req, res) => {
 
     res.status(500).json({
       message: 'Failed to get room by id.',
+    });
+  }
+});
+
+router.post('/:id/join', async (req, res) => {
+  const playerName = typeof req.body?.playerName === 'string' ? req.body.playerName.trim() : '';
+
+  if (!playerName) {
+    return res.status(400).json({
+      message: 'playerName is required',
+    });
+  }
+
+  try {
+    const player = await joinRoom(req.params.id, playerName);
+    const players = await getRoomPlayers(req.params.id);
+
+    res.status(201).json({
+      player,
+      players,
+    });
+  } catch (error) {
+    console.error(error);
+
+    const message = error instanceof Error ? error.message : 'Failed to join room.';
+
+    if (message === 'Room not found') {
+      return res.status(404).json({ message });
+    }
+
+    if (message === 'Game already started') {
+      return res.status(409).json({ message });
+    }
+
+    if (message === 'Room is full') {
+      return res.status(409).json({ message });
+    }
+
+    res.status(500).json({
+      message: 'Failed to join room.',
     });
   }
 });

@@ -30,6 +30,10 @@ export async function createRoom(data: {
     RETURNING *
   `;
 
+  if (!room) {
+    throw new Error('Room could not be created');
+  }
+
   return room;
 }
 
@@ -50,17 +54,79 @@ export async function getPublicRooms() {
 }
 
 export async function getRoomById(roomId: string) {
-  console.log('SEARCHING FOR:', roomId);
+  // console.log('SEARCHING FOR:', roomId);
 
-  const result = await sql`
+  const [room] = await sql`
     SELECT *
     FROM rooms
     WHERE id = ${roomId}
   `;
 
-  const [room] = result;
+  if (!room) {
+    throw new Error('Room not found');
+  }
 
-  console.log('ROOM:', room);
+  // console.log('ROOM:', room);
 
   return room;
+}
+
+export async function joinRoom(roomId: string, playerName: string) {
+  return await sql.begin(async (tx) => {
+    const [room] = await tx`
+      SELECT id, status, max_players
+      FROM rooms
+      WHERE id = ${roomId}
+      FOR UPDATE
+    `;
+
+    if (!room) {
+      throw new Error('Room not found');
+    }
+
+    if (room.status !== 'waiting') {
+      throw new Error('Game already started');
+    }
+
+    const [playerCount] = await tx`
+      SELECT COUNT(*)::int AS count
+      FROM room_players
+      WHERE room_id = ${roomId}
+        AND status = 'active'
+    `;
+
+    if (playerCount.count >= room.max_players) {
+      throw new Error('Room is full');
+    }
+
+    const [player] = await tx`
+      INSERT INTO room_players
+      (
+        room_id,
+        guest_name,
+        score,
+        status
+      )
+      VALUES
+      (
+        ${roomId},
+        ${playerName},
+        0,
+        'active'
+      )
+      RETURNING *
+    `;
+
+    return player;
+  });
+}
+
+export async function getRoomPlayers(roomId: string) {
+  return await sql`
+    SELECT *
+    FROM room_players
+    WHERE room_id = ${roomId}
+      AND status = 'active'
+    ORDER BY joined_at ASC
+  `;
 }
