@@ -1,5 +1,12 @@
 import { Router } from 'express';
-import { createRoom, getPublicRooms, getRoomById, getRoomPlayers, joinRoom } from '../db/room';
+import {
+  createRoom,
+  getLobbyState,
+  getPublicRooms,
+  getRoomById,
+  getRoomPlayers,
+  joinRoom,
+} from '../db/room';
 
 const router = Router();
 
@@ -83,6 +90,28 @@ router.post('/:id/join', async (req, res) => {
 
     res.status(500).json({
       message: 'Failed to join room.',
+    });
+  }
+});
+
+router.get('/:id/lobby', async (req, res) => {
+  try {
+    const lobbyState = await getLobbyState(req.params.id);
+
+    res.status(200).json(lobbyState);
+  } catch (error) {
+    console.error(error);
+
+    const message = error instanceof Error ? error.message : 'Failed to get lobby details.';
+
+    if (message === 'Room not found') {
+      return res.status(404).json({
+        message,
+      });
+    }
+
+    res.status(500).json({
+      message: 'Failed to get lobby details.',
     });
   }
 });

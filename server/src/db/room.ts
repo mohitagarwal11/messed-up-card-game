@@ -130,3 +130,36 @@ export async function getRoomPlayers(roomId: string) {
     ORDER BY joined_at ASC
   `;
 }
+
+export async function getLobbyState(roomId: string) {
+  const [room] = await sql`
+    SELECT
+      id,
+      name,
+      code,
+      status,
+      max_players AS "maxPlayers"
+    FROM rooms
+    WHERE id = ${roomId}
+  `;
+
+  if (!room) {
+    throw new Error('Room not found');
+  }
+
+  const players = await sql`
+    SELECT
+      id,
+      guest_name,
+      score
+    FROM room_players
+    WHERE room_id = ${roomId}
+      AND status = 'active'
+    ORDER BY joined_at ASC
+  `;
+
+  return {
+    room,
+    players,
+  };
+}
