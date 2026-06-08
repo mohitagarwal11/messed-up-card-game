@@ -5,3 +5,4 @@ dist/
 *.excalidraw
 /designs
 /DATA
+*.tsbuildinfo
