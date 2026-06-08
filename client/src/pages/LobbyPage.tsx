@@ -1,8 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { createRoom, getPublicRooms, getRoomByCode } from '../api/rooms';
 
 type RoomRow = {
   id: string;
+  code: string;
   name: string;
   players: string;
   rounds: string;
@@ -11,99 +13,99 @@ type RoomRow = {
   disabled: boolean;
 };
 
-// fetch these frm the server in the future, hardcoding for now to focus on UI
-const roomRows: RoomRow[] = [
-  {
-    id: 'chaos-pit',
-    name: 'CHAOS_PIT_666',
-    players: '3/8',
-    rounds: '10',
-    status: 'WAITING',
-    actionLabel: 'JOIN',
-    disabled: false,
-  },
-  {
-    id: 'the-void',
-    name: 'THE_VOID',
-    players: '8/8',
-    rounds: '15',
-    status: 'IN PROGRESS',
-    actionLabel: 'FULL',
-    disabled: true,
-  },
-  {
-    id: 'death-match-a',
-    name: 'DEATH_MATCH_A',
-    players: '1/8',
-    rounds: '10',
-    status: 'WAITING',
-    actionLabel: 'JOIN',
-    disabled: false,
-  },
-  {
-    id: 'neon-nights',
-    name: 'NEON_NIGHTS',
-    players: '5/8',
-    rounds: '5',
-    status: 'WAITING',
-    actionLabel: 'JOIN',
-    disabled: false,
-  },
-  {
-    id: 'silent-hill',
-    name: 'SILENT_HILL',
-    players: '4/8',
-    rounds: '25',
-    status: 'IN PROGRESS',
-    actionLabel: 'LOCKED',
-    disabled: true,
-  },
-  // {
-  //   id: 'chaos-pit',
-  //   name: 'CHAOS_PIT_666',
-  //   players: '3/8',
-  //   rounds: '10',
-  //   status: 'WAITING',
-  //   actionLabel: 'JOIN',
-  //   disabled: false,
-  // },
-  // {
-  //   id: 'the-void',
-  //   name: 'THE_VOID',
-  //   players: '8/8',
-  //   rounds: '15',
-  //   status: 'IN PROGRESS',
-  //   actionLabel: 'FULL',
-  //   disabled: true,
-  // },
-  // {
-  //   id: 'death-match-a',
-  //   name: 'DEATH_MATCH_A',
-  //   players: '1/8',
-  //   rounds: '10',
-  //   status: 'WAITING',
-  //   actionLabel: 'JOIN',
-  //   disabled: false,
-  // },
-  // {
-  //   id: 'neon-nights',
-  //   name: 'NEON_NIGHTS',
-  //   players: '5/8',
-  //   rounds: '5',
-  //   status: 'WAITING',
-  //   actionLabel: 'JOIN',
-  //   disabled: false,
-  // },
-  // {
-  //   id: 'silent-hill',
-  //   name: 'SILENT_HILL',
-  //   players: '4/8',
-  //   rounds: '25',
-  //   status: 'IN PROGRESS',
-  //   actionLabel: 'LOCKED',
-  //   disabled: true,
-  // },
-];
+// hardcoding for now to focus on UI
+// const roomRows: RoomRow[] = [
+//   {
+//     id: 'chaos-pit',
+//     name: 'CHAOS_PIT_666',
+//     players: '3/8',
+//     rounds: '10',
+//     status: 'WAITING',
+//     actionLabel: 'JOIN',
+//     disabled: false,
+//   },
+//   {
+//     id: 'the-void',
+//     name: 'THE_VOID',
+//     players: '8/8',
+//     rounds: '15',
+//     status: 'IN PROGRESS',
+//     actionLabel: 'FULL',
+//     disabled: true,
+//   },
+//   {
+//     id: 'death-match-a',
+//     name: 'DEATH_MATCH_A',
+//     players: '1/8',
+//     rounds: '10',
+//     status: 'WAITING',
+//     actionLabel: 'JOIN',
+//     disabled: false,
+//   },
+//   {
+//     id: 'neon-nights',
+//     name: 'NEON_NIGHTS',
+//     players: '5/8',
+//     rounds: '5',
+//     status: 'WAITING',
+//     actionLabel: 'JOIN',
+//     disabled: false,
+//   },
+//   {
+//     id: 'silent-hill',
+//     name: 'SILENT_HILL',
+//     players: '4/8',
+//     rounds: '25',
+//     status: 'IN PROGRESS',
+//     actionLabel: 'LOCKED',
+//     disabled: true,
+//   },
+//   // {
+//   //   id: 'chaos-pit',
+//   //   name: 'CHAOS_PIT_666',
+//   //   players: '3/8',
+//   //   rounds: '10',
+//   //   status: 'WAITING',
+//   //   actionLabel: 'JOIN',
+//   //   disabled: false,
+//   // },
+//   // {
+//   //   id: 'the-void',
+//   //   name: 'THE_VOID',
+//   //   players: '8/8',
+//   //   rounds: '15',
+//   //   status: 'IN PROGRESS',
+//   //   actionLabel: 'FULL',
+//   //   disabled: true,
+//   // },
+//   // {
+//   //   id: 'death-match-a',
+//   //   name: 'DEATH_MATCH_A',
+//   //   players: '1/8',
+//   //   rounds: '10',
+//   //   status: 'WAITING',
+//   //   actionLabel: 'JOIN',
+//   //   disabled: false,
+//   // },
+//   // {
+//   //   id: 'neon-nights',
+//   //   name: 'NEON_NIGHTS',
+//   //   players: '5/8',
+//   //   rounds: '5',
+//   //   status: 'WAITING',
+//   //   actionLabel: 'JOIN',
+//   //   disabled: false,
+//   // },
+//   // {
+//   //   id: 'silent-hill',
+//   //   name: 'SILENT_HILL',
+//   //   players: '4/8',
+//   //   rounds: '25',
+//   //   status: 'IN PROGRESS',
+//   //   actionLabel: 'LOCKED',
+//   //   disabled: true,
+//   // },
+// ];
 
 export default function LobbyPage() {
   const navigate = useNavigate();
@@ -113,9 +115,10 @@ export default function LobbyPage() {
   const [roomCode, setRoomCode] = useState('');
   const [isPrivate, setIsPrivate] = useState(false);
 
-  //fetch active room count from server later
+  const [roomRows, setRoomRows] = useState<RoomRow[]>([]);
   const activeRoomCount = roomRows.length;
 
+  // these do as their name suggests
   const handleCreateRoom = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
@@ -128,22 +131,37 @@ export default function LobbyPage() {
 
     console.log(payload);
 
-    // const room = await createRoom(payload);
-    // navigate(`/lobby/${room.id}`);
+    const room = await createRoom(payload);
+    navigate(`/lobby/${room.code}`);
   };
 
-  const handleJoinRoom = async (event: React.FormEvent<HTMLFormElement>) => {
+  const handleJoinPrivateRoom = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
-    const code = roomCode.trim().toUpperCase();
-
-    if (!code) return;
-
-    console.log({ code });
-
-    // const room = await findRoomByCode(code);
-    // navigate(`/lobby/${room.id}`);
+    const room = await getRoomByCode(roomCode);
+    navigate(`/lobby/${room.code}`);
   };
+
+  const handleJoinPublicRoom = (code: string) => {
+    navigate(`/lobby/${code}`);
+  };
+
+  // to fetch public rooms when entering lobby refreshes or will add a reload button if needed in future
+  useEffect(() => {
+    getPublicRooms().then((data) => {
+      const rows: RoomRow[] = data.map((room: any) => ({
+        id: room.id,
+        code: room.code,
+        name: room.name,
+        players: `${room.player_count}/${room.max_players}`,
+        rounds: String(room.total_rounds),
+        status: 'WAITING',
+        actionLabel: 'JOIN',
+        disabled: false,
+      }));
+      setRoomRows(rows);
+    });
+  }, []);
 
   return (
     <div className="page-shell flex min-h-screen flex-col">
@@ -265,7 +283,7 @@ export default function LobbyPage() {
               Join Private
             </h2>
 
-            <form onSubmit={handleJoinRoom} className="space-y-4">
+            <form onSubmit={handleJoinPrivateRoom} className="space-y-4">
               <div className="space-y-2">
                 <label className="font-mono-ui text-xs uppercase text-secondary">
                   Secret Room Code
@@ -365,7 +383,7 @@ export default function LobbyPage() {
                     <button
                       type="button"
                       disabled={room.disabled}
-                      onClick={() => navigate(`/game/${room.id}`)}
+                      onClick={() => handleJoinPublicRoom(room.code)}
                       className={`w-full px-8 py-2 font-mono-ui text-base uppercase md:w-auto ${
                         room.disabled
                           ? 'cursor-not-allowed bg-secondary-container text-on-secondary-container'
