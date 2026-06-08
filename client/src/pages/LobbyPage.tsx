@@ -107,14 +107,43 @@ const roomRows: RoomRow[] = [
 
 export default function LobbyPage() {
   const navigate = useNavigate();
-  const [showCreateSettings, setShowCreateSettings] = useState(false);
   const [roomName, setRoomName] = useState('');
   const [maxPlayers, setMaxPlayers] = useState('8');
   const [totalRounds, setTotalRounds] = useState('10');
   const [roomCode, setRoomCode] = useState('');
+  const [isPrivate, setIsPrivate] = useState(false);
 
   //fetch active room count from server later
   const activeRoomCount = roomRows.length;
+
+  const handleCreateRoom = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    const payload = {
+      name: roomName.trim(),
+      isPrivate,
+      maxPlayers: Number(maxPlayers),
+      totalRounds: Number(totalRounds),
+    };
+
+    console.log(payload);
+
+    // const room = await createRoom(payload);
+    // navigate(`/lobby/${room.id}`);
+  };
+
+  const handleJoinRoom = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    const code = roomCode.trim().toUpperCase();
+
+    if (!code) return;
+
+    console.log({ code });
+
+    // const room = await findRoomByCode(code);
+    // navigate(`/lobby/${room.id}`);
+  };
 
   return (
     <div className="page-shell flex min-h-screen flex-col">
@@ -151,37 +180,49 @@ export default function LobbyPage() {
       {/* create and join sections on the left bcuz i just realised mobile users would have a hard time accessing them at the bottom of the page */}
       <main className="relative z-10 flex h-[calc(100vh-100px)] flex-col xl:flex-row">
         {/* this part is for the create room and join private sections on the left */}
-        <aside className="flex w-full flex-col gap-10 border-t-4 border-primary border-r-2 bg-surface-container-lowest px-5 py-5 xl:w-[30%] xl:border-l-0 xl:border-t-0 xl:px-6 xl:py-6">
-          <section className="space-y-5">
+        <aside className="flex w-full flex-col gap-5 border-t-4 border-primary border-r-2 bg-surface-container-lowest px-5 py-5 xl:w-[30%] xl:border-l-0 xl:border-t-0 xl:px-6 xl:py-6">
+          {/* create custom room */}
+          <section className="space-y-4">
             <h2 className="font-display text-[clamp(1.5rem,2vw,2.2rem)] uppercase leading-none text-primary">
               Create Room
             </h2>
 
-            <div
-              className={`space-y-4 ${
-                showCreateSettings ? 'opacity-100' : 'pointer-events-none hidden opacity-0'
-              }`}
-            >
-              <div className="space-y-2">
+            <form onSubmit={handleCreateRoom} className="space-y-4">
+              <div className="space-y-1">
                 <label className="font-mono-ui text-xs uppercase text-secondary">Room Name</label>
+
                 <input
+                  type="text"
+                  required
                   value={roomName}
                   onChange={(event) => setRoomName(event.target.value)}
-                  className="w-full border-2 border-primary bg-background p-4 font-mono-ui text-primary placeholder:text-surface-variant focus:border-primary-container focus:outline-none"
                   placeholder="ENTER_NAME..."
-                  type="text"
+                  className="w-full border-2 border-primary bg-background p-3 font-mono-ui text-primary placeholder:text-surface-variant focus:border-primary-container focus:outline-none"
                 />
               </div>
 
+              <button
+                type="button"
+                onClick={() => setIsPrivate((value) => !value)}
+                className={`w-full border-2 p-3 font-mono-ui uppercase transition-colors ${
+                  isPrivate
+                    ? 'border-primary bg-primary text-background'
+                    : 'border-primary text-primary'
+                }`}
+              >
+                {isPrivate ? 'Private Room: ON' : 'Private Room: OFF'}
+              </button>
+
               <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
+                <div className="space-y-1">
                   <label className="font-mono-ui text-xs uppercase text-secondary">
                     Max Players
                   </label>
+
                   <select
                     value={maxPlayers}
                     onChange={(event) => setMaxPlayers(event.target.value)}
-                    className="w-full border-2 border-primary bg-background p-4 font-mono-ui text-primary focus:border-primary-container focus:outline-none"
+                    className="w-full border-2 border-primary bg-background p-3 font-mono-ui text-primary focus:border-primary-container focus:outline-none"
                   >
                     <option value="4">4</option>
                     <option value="8">8</option>
@@ -189,14 +230,15 @@ export default function LobbyPage() {
                   </select>
                 </div>
 
-                <div className="space-y-2">
+                <div className="space-y-1">
                   <label className="font-mono-ui text-xs uppercase text-secondary">
                     Total Rounds
                   </label>
+
                   <select
                     value={totalRounds}
                     onChange={(event) => setTotalRounds(event.target.value)}
-                    className="w-full border-2 border-primary bg-background p-4 font-mono-ui text-primary focus:border-primary-container focus:outline-none"
+                    className="w-full border-2 border-primary bg-background p-3 font-mono-ui text-primary focus:border-primary-container focus:outline-none"
                   >
                     <option value="5">5</option>
                     <option value="10">10</option>
@@ -205,50 +247,49 @@ export default function LobbyPage() {
                   </select>
                 </div>
               </div>
-            </div>
 
-            <button
-              type="button"
-              onClick={() => setShowCreateSettings((current) => !current)}
-              className="neo-shadow active-press w-full bg-primary-container py-4 font-display text-2xl uppercase text-on-primary-container"
-            >
-              {showCreateSettings ? 'Start Room' : 'Go Live'}
-            </button>
+              <button
+                type="submit"
+                className="neo-shadow active-press w-full bg-primary-container py-3 font-display text-2xl uppercase text-on-primary-container"
+              >
+                Start Room
+              </button>
+            </form>
           </section>
 
           <div className="h-1 w-full bg-primary opacity-20" />
 
-          <section className="space-y-5">
+          {/* join private room */}
+          <section className="space-y-4">
             <h2 className="font-display text-[clamp(1.5rem,2vw,2.2rem)] uppercase leading-none text-primary">
               Join Private
             </h2>
 
-            <div className="space-y-4">
+            <form onSubmit={handleJoinRoom} className="space-y-4">
               <div className="space-y-2">
                 <label className="font-mono-ui text-xs uppercase text-secondary">
                   Secret Room Code
                 </label>
+
                 <input
+                  type="text"
+                  required
+                  minLength={6}
+                  maxLength={6}
                   value={roomCode}
                   onChange={(event) => setRoomCode(event.target.value.toUpperCase())}
-                  className="w-full border-2 border-primary bg-background p-4 text-center font-mono-ui tracking-[0.35em] text-primary placeholder:text-surface-variant focus:border-primary-container focus:outline-none"
                   placeholder="XXXXXX"
-                  type="text"
+                  className="w-full border-2 border-primary bg-background p-3 text-center font-mono-ui tracking-[0.35em] text-primary placeholder:text-surface-variant focus:border-primary-container focus:outline-none"
                 />
               </div>
 
               <button
-                type="button"
-                className="active-press w-full border-4 border-primary py-4 font-display text-2xl uppercase text-primary transition-colors hover:bg-primary hover:text-background"
-                onClick={() => {
-                  if (roomCode.trim()) {
-                    navigate('/lobby');
-                  }
-                }}
+                type="submit"
+                className="active-press w-full border-4 border-primary py-3 font-display text-2xl uppercase text-primary transition-colors hover:bg-primary hover:text-background"
               >
                 Connect
               </button>
-            </div>
+            </form>
           </section>
         </aside>
         {/* this part is for the public rooms on the right */}
@@ -268,7 +309,7 @@ export default function LobbyPage() {
               {roomRows.map((room) => (
                 <article
                   key={room.id}
-                  className={`border-2 px-5 py-4 transition-colors ${
+                  className={`border-2 px-8 py-3 transition-colors ${
                     room.disabled
                       ? 'border-outline bg-surface-container-low opacity-70'
                       : 'border-primary bg-surface-container'
@@ -325,7 +366,7 @@ export default function LobbyPage() {
                       type="button"
                       disabled={room.disabled}
                       onClick={() => navigate(`/game/${room.id}`)}
-                      className={`w-full px-6 py-2 font-mono-ui text-base uppercase md:w-auto ${
+                      className={`w-full px-8 py-2 font-mono-ui text-base uppercase md:w-auto ${
                         room.disabled
                           ? 'cursor-not-allowed bg-secondary-container text-on-secondary-container'
                           : 'neo-shadow active-press bg-primary-container text-on-primary-container'
