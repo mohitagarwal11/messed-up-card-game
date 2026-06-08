@@ -37,19 +37,24 @@ export async function createRoom(data: {
   return room;
 }
 
+// room.ts (server)
 export async function getPublicRooms() {
   return await sql`
     SELECT
-      id,
-      code,
-      name,
-      max_players,
-      total_rounds,
-      created_at
-    FROM rooms
-    WHERE is_private = false
-      AND status = 'waiting'
-    ORDER BY created_at DESC
+      r.id,
+      r.code,
+      r.name,
+      r.max_players,
+      r.total_rounds,
+      r.created_at,
+      COUNT(rp.id)::int AS player_count
+    FROM rooms r
+    LEFT JOIN room_players rp
+      ON rp.room_id = r.id AND rp.status = 'active'
+    WHERE r.is_private = false
+      AND r.status = 'waiting'
+    GROUP BY r.id
+    ORDER BY r.created_at DESC
   `;
 }
 
