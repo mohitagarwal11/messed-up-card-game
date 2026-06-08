@@ -53,13 +53,13 @@ export async function getPublicRooms() {
   `;
 }
 
-export async function getRoomById(roomId: string) {
-  // console.log('SEARCHING FOR:', roomId);
+export async function getRoomByCode(roomCode: string) {
+  // console.log('SEARCHING FOR:', roomCode);
 
   const [room] = await sql`
     SELECT *
     FROM rooms
-    WHERE id = ${roomId}
+    WHERE code = ${roomCode}
   `;
 
   if (!room) {
@@ -71,12 +71,12 @@ export async function getRoomById(roomId: string) {
   return room;
 }
 
-export async function joinRoom(roomId: string, playerName: string) {
+export async function joinRoom(roomCode: string, playerName: string) {
   return await sql.begin(async (tx) => {
     const [room] = await tx`
       SELECT id, status, max_players
       FROM rooms
-      WHERE id = ${roomId}
+      WHERE code = ${roomCode}
       FOR UPDATE
     `;
 
@@ -91,7 +91,7 @@ export async function joinRoom(roomId: string, playerName: string) {
     const [playerCount] = await tx`
       SELECT COUNT(*)::int AS count
       FROM room_players
-      WHERE room_id = ${roomId}
+      WHERE room_id = ${room.id}
         AND status = 'active'
     `;
 
@@ -109,7 +109,7 @@ export async function joinRoom(roomId: string, playerName: string) {
       )
       VALUES
       (
-        ${roomId},
+        ${room.id},
         ${playerName},
         0,
         'active'
@@ -117,7 +117,7 @@ export async function joinRoom(roomId: string, playerName: string) {
       RETURNING *
     `;
 
-    return player;
+    return { player, roomId: room.id };
   });
 }
 
@@ -131,7 +131,7 @@ export async function getRoomPlayers(roomId: string) {
   `;
 }
 
-export async function getLobbyState(roomId: string) {
+export async function getLobbyState(roomCode: string) {
   const [room] = await sql`
     SELECT
       id,
@@ -140,7 +140,7 @@ export async function getLobbyState(roomId: string) {
       status,
       max_players AS "maxPlayers"
     FROM rooms
-    WHERE id = ${roomId}
+    WHERE code = ${roomCode}
   `;
 
   if (!room) {
@@ -153,7 +153,7 @@ export async function getLobbyState(roomId: string) {
       guest_name,
       score
     FROM room_players
-    WHERE room_id = ${roomId}
+    WHERE room_id = ${room.id}
       AND status = 'active'
     ORDER BY joined_at ASC
   `;

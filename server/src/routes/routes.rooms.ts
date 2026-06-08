@@ -3,13 +3,14 @@ import {
   createRoom,
   getLobbyState,
   getPublicRooms,
-  getRoomById,
+  getRoomByCode,
   getRoomPlayers,
   joinRoom,
 } from '../db/room';
 
 const router = Router();
 
+// create room route
 router.post('/', async (req, res) => {
   try {
     const room = await createRoom(req.body);
@@ -22,6 +23,7 @@ router.post('/', async (req, res) => {
   }
 });
 
+// get public rooms route
 router.get('/', async (req, res) => {
   try {
     const rooms = await getPublicRooms();
@@ -34,27 +36,23 @@ router.get('/', async (req, res) => {
   }
 });
 
-router.get('/:id', async (req, res) => {
+// get room by code route
+router.get('/:code', async (req, res) => {
   try {
-    const room = await getRoomById(req.params.id);
-
-    if (!room) {
-      return res.status(404).json({
-        message: 'Room not found',
-      });
-    }
+    const room = await getRoomByCode(req.params.code);
 
     res.status(200).json(room);
   } catch (error) {
     console.error(error);
 
     res.status(500).json({
-      message: 'Failed to get room by id.',
+      message: 'Failed to get room by code.',
     });
   }
 });
 
-router.post('/:id/join', async (req, res) => {
+// join room route
+router.post('/:code/join', async (req, res) => {
   const playerName = typeof req.body?.playerName === 'string' ? req.body.playerName.trim() : '';
 
   if (!playerName) {
@@ -64,8 +62,8 @@ router.post('/:id/join', async (req, res) => {
   }
 
   try {
-    const player = await joinRoom(req.params.id, playerName);
-    const players = await getRoomPlayers(req.params.id);
+    const { player, roomId } = await joinRoom(req.params.code, playerName);
+    const players = await getRoomPlayers(roomId);
 
     res.status(201).json({
       player,
@@ -94,9 +92,10 @@ router.post('/:id/join', async (req, res) => {
   }
 });
 
-router.get('/:id/lobby', async (req, res) => {
+// get lobby details route
+router.get('/:code/lobby', async (req, res) => {
   try {
-    const lobbyState = await getLobbyState(req.params.id);
+    const lobbyState = await getLobbyState(req.params.code);
 
     res.status(200).json(lobbyState);
   } catch (error) {
