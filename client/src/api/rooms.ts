@@ -7,24 +7,20 @@ export async function createRoom(payload: {
   totalRounds: number;
 }) {
   const response = await client.post('/rooms', payload);
-
-  console.log(response);
-
   return response.data;
 }
 
 export async function getPublicRooms() {
   const response = await client.get('/rooms');
-
-  console.log(response);
-
   return response.data;
 }
 
 export async function getRoomByCode(roomCode: string) {
   const response = await client.get(`/rooms/${roomCode}`);
+  return response.data;
+}
 
-  console.log(response);
-
+export async function getLobbyState(roomCode: string) {
+  const response = await client.get(`/rooms/${roomCode}/lobby`);
   return response.data;
 }

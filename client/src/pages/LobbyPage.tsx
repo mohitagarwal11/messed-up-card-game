@@ -129,9 +129,14 @@ export default function LobbyPage() {
       totalRounds: Number(totalRounds),
     };
 
-    console.log(payload);
+    // console.log(payload);
 
     const room = await createRoom(payload);
+    if (!room) {
+      //gotta replace with good error message for user later
+      console.log('Failed to create room');
+      return;
+    }
     navigate(`/lobby/${room.code}`);
   };
 
@@ -139,6 +144,13 @@ export default function LobbyPage() {
     event.preventDefault();
 
     const room = await getRoomByCode(roomCode);
+
+    if (!room) {
+      //gotta replace with good error message for user later
+      console.log('Failed to get room with Code: ', roomCode);
+      return;
+    }
+
     navigate(`/lobby/${room.code}`);
   };
 
