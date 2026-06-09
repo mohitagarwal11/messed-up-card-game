@@ -7,7 +7,20 @@ export async function createRoom(data: {
   maxPlayers: number;
   totalRounds: number;
 }) {
-  const code = generateRoomCode();
+  // duplicate check not rly req now but did it for future
+  let code: string = '';
+
+  for (let i = 0; i < 5; i++) {
+    const candidate = generateRoomCode();
+    const [existing] = await sql`SELECT id FROM rooms WHERE code = ${candidate}`;
+    if (!existing) {
+      code = candidate;
+      break;
+    }
+  }
+
+  if (!code) throw new Error('Failed to generate unique room code');
+
   const [room] = await sql`
     INSERT INTO rooms
     (
@@ -37,7 +50,6 @@ export async function createRoom(data: {
   return room;
 }
 
-// room.ts (server)
 export async function getPublicRooms() {
   return await sql`
     SELECT
@@ -140,31 +152,32 @@ export async function getLobbyState(roomCode: string) {
   const [room] = await sql`
     SELECT
       id,
-      name,
+      host_id         AS "hostId",
       code,
+      name,
+      is_private      AS "isPrivate",
+      max_players     AS "maxPlayers",
+      total_rounds    AS "totalRounds",
       status,
-      max_players AS "maxPlayers"
+      current_round   AS "currentRound"
     FROM rooms
     WHERE code = ${roomCode}
   `;
 
-  if (!room) {
-    throw new Error('Room not found');
-  }
+  if (!room) throw new Error('Room not found');
 
   const players = await sql`
     SELECT
       id,
-      guest_name,
-      score
+      guest_name              AS "name",
+      score,
+      status,
+      (id = ${room.hostId})   AS "isHost"
     FROM room_players
     WHERE room_id = ${room.id}
       AND status = 'active'
     ORDER BY joined_at ASC
   `;
 
-  return {
-    room,
-    players,
-  };
+  return { ...room, players };
 }
