@@ -1,0 +1,51 @@
+# CLINE RULES - TOKEN OPTIMIZED
+
+## Output
+
+- No greetings, transitions, or summaries.
+- No explanation of what changed unless asked.
+- No inline code comments unless the logic is non-obvious.
+- Keep prose responses under 20 words.
+
+## File Handling
+
+- Never read a file unless it is directly required for the current edit.
+- Never print the full content of an unchanged file.
+- Use targeted SEARCH/REPLACE edits only. No full file rewrites.
+
+## Plan Mode
+
+- Output a flat checklist of files to modify and the change type. Max 80 words.
+- Do not ask clarifying questions mid-task. Make a reasonable assumption and state it in one line.
+
+## Act Mode
+
+- Execute edits directly. No narration.
+- Do not re-read files already in context.
+
+## Code Standards
+
+- Strict types, explicit error handling, modular structure.
+- Run compile/test command once before marking task complete if config exists.
+
+## Tool Discipline
+
+- Batch all terminal commands into one shell call where possible.
+- Do not verify a file write by re-reading it immediately after.
+- Do not run `ls` or `find` to explore structure — ask if uncertain.
+
+## Error Handling
+
+- On error, fix it directly. Do not ask for permission to retry.
+- Do not re-attempt the same fix more than twice. State the blocker instead.
+
+## Scope Control
+
+- Only touch files explicitly mentioned or directly required.
+- Do not refactor, rename, or reformat anything outside the task scope.
+- Do not introduce new dependencies unless asked.
+
+## Assumptions
+
+- If intent is ambiguous, make the most conservative assumption and state it once.
+- Do not pause mid-task to ask clarifying questions.
