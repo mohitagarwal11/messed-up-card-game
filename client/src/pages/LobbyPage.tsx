@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { createRoom, getPublicRooms, getRoomByCode } from '../api/rooms';
+import { LetterAvatar } from '../components/LetterAvatar';
 
 type RoomRow = {
   id: string;
@@ -176,7 +177,7 @@ export default function LobbyPage() {
   }, []);
 
   return (
-    <div className="page-shell flex min-h-screen flex-col">
+    <div className="page-shell flex h-screen flex-col">
       <header className="relative z-10 flex items-center justify-between border-b-2 border-primary bg-background px-6 py-4 xl:px-8">
         <div className="font-display text-2xl uppercase tracking-tight text-primary-container xl:text-4xl">
           Messed Up Cards
@@ -192,9 +193,10 @@ export default function LobbyPage() {
             </span>
           </div>
 
-          <div className="flex h-12 w-12 items-center justify-center border-2 border-primary bg-surface-container">
+          {/* <div className="flex h-12 w-12 items-center justify-center border-2 border-primary bg-surface-container">
             <div className="h-10 w-10 bg-gradient-to-br from-primary-container to-surface-container-high" />
-          </div>
+          </div> */}
+          <LetterAvatar name="maw11" isHost />
 
           {/* leaderboard is for future  */}
           {/* <button

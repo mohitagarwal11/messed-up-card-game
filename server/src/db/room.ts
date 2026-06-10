@@ -6,6 +6,7 @@ export async function createRoom(data: {
   isPrivate: boolean;
   maxPlayers: number;
   totalRounds: number;
+  hostId: string;
 }) {
   // duplicate check not rly req now but did it for future
   let code: string = '';
@@ -29,7 +30,8 @@ export async function createRoom(data: {
       is_private,
       max_players,
       total_rounds,
-      status
+      host_id,
+      status,
     )
     VALUES
     (
@@ -38,6 +40,7 @@ export async function createRoom(data: {
       ${data.isPrivate},
       ${data.maxPlayers},
       ${data.totalRounds},
+      ${data.hostId},
       'waiting'
     )
     RETURNING *
