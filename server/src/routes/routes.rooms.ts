@@ -6,6 +6,7 @@ import {
   getRoomByCode,
   getRoomPlayers,
   joinRoom,
+  leaveRoom,
 } from '../db/room';
 
 const router = Router();
@@ -129,6 +130,21 @@ router.get('/:code/lobby', async (req, res) => {
     res.status(500).json({
       message: 'Failed to get lobby details.',
     });
+  }
+});
+
+// leave room route
+router.post('/:code/leave', async (req, res) => {
+  const playerId = typeof req.body?.playerId === 'string' ? req.body.playerId.trim() : '';
+  if (!playerId) {
+    return res.status(400).json({ message: 'playerId is required' });
+  }
+  try {
+    await leaveRoom(req.params.code, playerId);
+    res.status(200).json({ ok: true });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Failed to leave room.' });
   }
 });
 

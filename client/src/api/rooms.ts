@@ -30,3 +30,7 @@ export async function joinRoom(roomCode: string, playerName: string) {
   const response = await client.post(`/rooms/${roomCode}/join`, { playerName });
   return response.data;
 }
+
+export async function leaveRoom(roomCode: string, playerId: string): Promise<void> {
+  await client.post(`/rooms/${roomCode}/leave`, { playerId });
+}

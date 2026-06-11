@@ -119,6 +119,29 @@ export async function joinRoom(roomCode: string, playerName: string) {
       throw new Error('Room is full');
     }
 
+    // Check for existing player (case-insensitive)
+    const [existing] = await tx`
+      SELECT *
+      FROM room_players
+      WHERE room_id = ${room.id}
+        AND LOWER(guest_name) = LOWER(${playerName})
+    `;
+
+    if (existing) {
+      if (existing.status === 'active') {
+        return { player: existing, roomId: room.id };
+      }
+      if (existing.status === 'disconnected') {
+        const [updated] = await tx`
+          UPDATE room_players
+          SET status = 'active'
+          WHERE id = ${existing.id}
+          RETURNING *
+        `;
+        return { player: updated, roomId: room.id };
+      }
+    }
+
     const [player] = await tx`
       INSERT INTO room_players
       (
@@ -183,4 +206,40 @@ export async function getLobbyState(roomCode: string) {
   `;
 
   return { ...room, players };
+}
+
+// Leave room function
+export async function leaveRoom(roomCode: string, playerId: string) {
+  await sql.begin(async (tx) => {
+    // Get room id
+    const [room] = await tx`
+      SELECT id FROM rooms WHERE code = ${roomCode}
+    `;
+    if (!room) {
+      // Room may already be deleted
+      return;
+    }
+
+    const roomId = room.id;
+
+    // Get earliest-joined active player
+    const [earliest] = await tx`
+      SELECT id FROM room_players
+      WHERE room_id = ${roomId} AND status = 'active'
+      ORDER BY joined_at ASC
+      LIMIT 1
+    `;
+
+    if (earliest && earliest.id === playerId) {
+      // Host leaving, delete room (cascade deletes players)
+      await tx`DELETE FROM rooms WHERE id = ${roomId}`;
+    } else {
+      // Update player status to disconnected
+      await tx`
+        UPDATE room_players
+        SET status = 'disconnected'
+        WHERE id = ${playerId}
+      `;
+    }
+  });
 }
