@@ -1,9 +1,42 @@
-import { useRef } from 'react';
+import { useRef, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { createGuestUser } from '../api/users';
 
 export default function LandingPage() {
   const navigate = useNavigate();
   const heroRef = useRef<HTMLElement | null>(null);
+  const [step, setStep] = useState<'home' | 'username'>('home');
+  const [username, setUsername] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // On mount, redirect if guestUser exists
+  useEffect(() => {
+    const stored = localStorage.getItem('guestUser');
+    if (stored) {
+      try {
+        JSON.parse(stored);
+        navigate('/lobby');
+      } catch {
+        // ignore malformed JSON
+      }
+    }
+  }, [navigate]);
+
+  const handleSubmit = async () => {
+    if (!username.trim()) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const user = await createGuestUser(username.trim());
+      localStorage.setItem('guestUser', JSON.stringify(user));
+      navigate('/lobby');
+    } catch (e) {
+      setError('Failed to create guest user');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="page-shell flex items-center justify-center px-6">
@@ -16,29 +49,63 @@ export default function LandingPage() {
         </h1>
 
         <p className="mt-4 font-mono-ui text-[0.85rem] uppercase tracking-[0.28em] text-secondary">
-          A party game for horrible people
+          A game designed to test the limits of your friend group
         </p>
 
         <div className="mt-14 flex w-full max-w-md flex-col gap-4">
-          <button
-            type="button"
-            onClick={() => navigate('/lobby')}
-            className="neo-shadow active-press w-full border-4 border-black bg-primary-container px-6 py-5 font-display text-3xl uppercase text-on-primary-container"
-          >
-            Sign In / Sign Up
-          </button>
-
-          <button
-            type="button"
-            onClick={() => navigate('/lobby')}
-            className="active-press w-full border-4 border-primary bg-transparent px-6 py-5 font-display text-3xl uppercase text-primary"
-          >
-            Play as Guest
-          </button>
+          {step === 'home' && (
+            <button
+              type="button"
+              onClick={() => setStep('username')}
+              className="neo-shadow active-press w-full border-4 border-black bg-primary-container px-6 py-5 font-display text-3xl uppercase text-on-primary-container"
+            >
+              Play a game
+            </button>
+          )}
+          {step === 'username' && (
+            <>
+              <input
+                type="text"
+                maxLength={20}
+                autoFocus
+                placeholder="USERNAME"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                className="w-full border-4 border-primary bg-transparent px-6 py-5 font-display text-3xl uppercase text-primary"
+              />
+              <button
+                type="button"
+                disabled={loading}
+                onClick={handleSubmit}
+                className="neo-shadow active-press w-full border-4 border-black bg-primary-container px-6 py-5 font-display text-3xl uppercase text-on-primary-container"
+              >
+                {loading ? 'Loading...' : "Let's Go"}
+              </button>
+              {error && <p className="mt-2 text-sm text-red-500">{error}</p>}
+              <a
+                href="#"
+                onClick={(e) => {
+                  e.preventDefault();
+                  setStep('home');
+                  setUsername('');
+                  setError(null);
+                }}
+                className="mt-2 text-sm underline"
+              >
+                Back
+              </a>
+            </>
+          )}
         </div>
 
-        <p className="mt-14 font-mono-ui text-xs uppercase tracking-[0.25em] text-secondary/60">
-          Guests can only join public rooms. Sign in to track stats.
+        <p className="mt-24 font-mono-ui text-xs uppercase tracking-[0.25em] text-secondary/60">
+          Disclaimer: This game is not meant to offend anyone.
+        </p>
+        <p className="mt-4 font-mono-ui text-xs uppercase tracking-[0.25em] text-secondary/60">
+          It is carefully engineered to offend everyone equally.
+        </p>
+        <p className="mt-6 font-mono-ui text-xs uppercase tracking-[0.25em] text-secondary/60">
+          - made by Mohit Agarwal
         </p>
       </main>
     </div>
