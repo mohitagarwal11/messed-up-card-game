@@ -6,7 +6,7 @@ export async function createRoom(data: {
   isPrivate: boolean;
   maxPlayers: number;
   totalRounds: number;
-  hostId: string;
+  hostId?: string | null;
 }) {
   // duplicate check not rly req now but did it for future
   let code: string = '';
@@ -31,7 +31,7 @@ export async function createRoom(data: {
       max_players,
       total_rounds,
       host_id,
-      status,
+      status
     )
     VALUES
     (
@@ -40,7 +40,7 @@ export async function createRoom(data: {
       ${data.isPrivate},
       ${data.maxPlayers},
       ${data.totalRounds},
-      ${data.hostId},
+      ${data.hostId ?? null},
       'waiting'
     )
     RETURNING *
@@ -175,7 +175,7 @@ export async function getLobbyState(roomCode: string) {
       guest_name              AS "name",
       score,
       status,
-      (id = ${room.hostId})   AS "isHost"
+      (joined_at = MIN(joined_at) OVER ()) AS "isHost"
     FROM room_players
     WHERE room_id = ${room.id}
       AND status = 'active'

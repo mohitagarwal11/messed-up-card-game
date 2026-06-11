@@ -5,6 +5,7 @@ export async function createRoom(payload: {
   isPrivate: boolean;
   maxPlayers: number;
   totalRounds: number;
+  playerName: string;
 }) {
   const response = await client.post('/rooms', payload);
   return response.data;
@@ -22,5 +23,10 @@ export async function getRoomByCode(roomCode: string) {
 
 export async function getLobbyState(roomCode: string) {
   const response = await client.get(`/rooms/${roomCode}/lobby`);
+  return response.data;
+}
+
+export async function joinRoom(roomCode: string, playerName: string) {
+  const response = await client.post(`/rooms/${roomCode}/join`, { playerName });
   return response.data;
 }

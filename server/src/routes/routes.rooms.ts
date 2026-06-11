@@ -13,8 +13,25 @@ const router = Router();
 // create room route
 router.post('/', async (req, res) => {
   try {
-    const room = await createRoom(req.body);
-    res.status(201).json(room);
+    const { name, isPrivate, maxPlayers, totalRounds, playerName } = req.body;
+
+    const trimmedPlayerName = typeof playerName === 'string' ? playerName.trim() : '';
+
+    if (!trimmedPlayerName) {
+      return res.status(400).json({ message: 'playerName is required' });
+    }
+
+    const room = await createRoom({
+      name,
+      isPrivate,
+      maxPlayers,
+      totalRounds,
+      hostId: null,
+    });
+
+    const { player } = await joinRoom(room.code, trimmedPlayerName);
+
+    res.status(201).json({ room, player });
   } catch (error) {
     console.log(error);
     res.status(500).json({
