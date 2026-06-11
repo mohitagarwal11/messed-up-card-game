@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { createRoom, getPublicRooms, getRoomByCode } from '../api/rooms';
+import { createRoom, getPublicRooms, getRoomByCode, joinRoom } from '../api/rooms';
 import { LetterAvatar } from '../components/LetterAvatar';
 
 type RoomRow = {
@@ -14,112 +14,26 @@ type RoomRow = {
   disabled: boolean;
 };
 
-// hardcoding for now to focus on UI
-// const roomRows: RoomRow[] = [
-//   {
-//     id: 'chaos-pit',
-//     name: 'CHAOS_PIT_666',
-//     players: '3/8',
-//     rounds: '10',
-//     status: 'WAITING',
-//     actionLabel: 'JOIN',
-//     disabled: false,
-//   },
-//   {
-//     id: 'the-void',
-//     name: 'THE_VOID',
-//     players: '8/8',
-//     rounds: '15',
-//     status: 'IN PROGRESS',
-//     actionLabel: 'FULL',
-//     disabled: true,
-//   },
-//   {
-//     id: 'death-match-a',
-//     name: 'DEATH_MATCH_A',
-//     players: '1/8',
-//     rounds: '10',
-//     status: 'WAITING',
-//     actionLabel: 'JOIN',
-//     disabled: false,
-//   },
-//   {
-//     id: 'neon-nights',
-//     name: 'NEON_NIGHTS',
-//     players: '5/8',
-//     rounds: '5',
-//     status: 'WAITING',
-//     actionLabel: 'JOIN',
-//     disabled: false,
-//   },
-//   {
-//     id: 'silent-hill',
-//     name: 'SILENT_HILL',
-//     players: '4/8',
-//     rounds: '25',
-//     status: 'IN PROGRESS',
-//     actionLabel: 'LOCKED',
-//     disabled: true,
-//   },
-//   // {
-//   //   id: 'chaos-pit',
-//   //   name: 'CHAOS_PIT_666',
-//   //   players: '3/8',
-//   //   rounds: '10',
-//   //   status: 'WAITING',
-//   //   actionLabel: 'JOIN',
-//   //   disabled: false,
-//   // },
-//   // {
-//   //   id: 'the-void',
-//   //   name: 'THE_VOID',
-//   //   players: '8/8',
-//   //   rounds: '15',
-//   //   status: 'IN PROGRESS',
-//   //   actionLabel: 'FULL',
-//   //   disabled: true,
-//   // },
-//   // {
-//   //   id: 'death-match-a',
-//   //   name: 'DEATH_MATCH_A',
-//   //   players: '1/8',
-//   //   rounds: '10',
-//   //   status: 'WAITING',
-//   //   actionLabel: 'JOIN',
-//   //   disabled: false,
-//   // },
-//   // {
-//   //   id: 'neon-nights',
-//   //   name: 'NEON_NIGHTS',
-//   //   players: '5/8',
-//   //   rounds: '5',
-//   //   status: 'WAITING',
-//   //   actionLabel: 'JOIN',
-//   //   disabled: false,
-//   // },
-//   // {
-//   //   id: 'silent-hill',
-//   //   name: 'SILENT_HILL',
-//   //   players: '4/8',
-//   //   rounds: '25',
-//   //   status: 'IN PROGRESS',
-//   //   actionLabel: 'LOCKED',
-//   //   disabled: true,
-//   // },
-// ];
-
 export default function LobbyPage() {
   const navigate = useNavigate();
+  const guestUser = JSON.parse(localStorage.getItem('guestUser') ?? 'null') as {
+    id: string;
+    name: string;
+  } | null;
+
+  useEffect(() => {
+    if (!guestUser) navigate('/');
+  }, []);
   const [roomName, setRoomName] = useState('');
   const [maxPlayers, setMaxPlayers] = useState('8');
   const [totalRounds, setTotalRounds] = useState('10');
   const [roomCode, setRoomCode] = useState('');
   const [isPrivate, setIsPrivate] = useState(false);
 
+  const guestName = ''; // default guest name
   const [roomRows, setRoomRows] = useState<RoomRow[]>([]);
   const activeRoomCount = roomRows.length;
 
-  // these do as their name suggests
   const handleCreateRoom = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
@@ -128,16 +42,16 @@ export default function LobbyPage() {
       isPrivate,
       maxPlayers: Number(maxPlayers),
       totalRounds: Number(totalRounds),
+      playerName: guestUser!.name,
     };
 
-    // console.log(payload);
-
-    const room = await createRoom(payload);
+    const { room, player } = await createRoom(payload);
     if (!room) {
-      //gotta replace with good error message for user later
       console.log('Failed to create room');
       return;
     }
+    localStorage.setItem('playerId', player.id);
+    localStorage.setItem('playerName', player.name);
     navigate(`/lobby/${room.code}`);
   };
 
@@ -147,19 +61,31 @@ export default function LobbyPage() {
     const room = await getRoomByCode(roomCode);
 
     if (!room) {
-      //gotta replace with good error message for user later
       console.log('Failed to get room with Code: ', roomCode);
       return;
     }
 
-    navigate(`/lobby/${room.code}`);
+    try {
+      const { player } = await joinRoom(room.code, guestUser!.name);
+      localStorage.setItem('playerId', player.id);
+      localStorage.setItem('playerName', guestUser!.name);
+      navigate(`/lobby/${room.code}`);
+    } catch (err) {
+      console.error('Failed to join room:', err);
+    }
   };
 
-  const handleJoinPublicRoom = (code: string) => {
-    navigate(`/lobby/${code}`);
+  const handleJoinPublicRoom = async (code: string) => {
+    try {
+      const { player } = await joinRoom(code, guestUser!.name);
+      localStorage.setItem('playerId', player.id);
+      localStorage.setItem('playerName', guestUser!.name);
+      navigate(`/lobby/${code}`);
+    } catch (err) {
+      console.error('Failed to join room:', err);
+    }
   };
 
-  // to fetch public rooms when entering lobby refreshes or will add a reload button if needed in future
   useEffect(() => {
     getPublicRooms().then((data) => {
       const rows: RoomRow[] = data.map((room: any) => ({
@@ -186,32 +112,15 @@ export default function LobbyPage() {
         <div className="flex items-center gap-4">
           <div className="flex flex-col items-end text-right">
             <span className="font-display text-base uppercase leading-none text-primary xl:text-2xl">
-              DEGEN_KING_99
-            </span>
-            <span className="font-mono-ui text-[10px] uppercase tracking-[0.2em] text-primary-container">
-              Points 42
+              {guestUser?.name ?? ''}
             </span>
           </div>
 
-          {/* <div className="flex h-12 w-12 items-center justify-center border-2 border-primary bg-surface-container">
-            <div className="h-10 w-10 bg-gradient-to-br from-primary-container to-surface-container-high" />
-          </div> */}
           <LetterAvatar name="maw11" isHost />
-
-          {/* leaderboard is for future  */}
-          {/* <button
-            type="button"
-            className="p-2 text-primary transition-transform duration-75 active:translate-x-1 active:translate-y-1"
-            aria-label="Leaderboard"
-          >
-            <span className="material-symbols-outlined text-3xl">leaderboard</span>
-          </button> */}
         </div>
       </header>
 
-      {/* create and join sections on the left bcuz i just realised mobile users would have a hard time accessing them at the bottom of the page */}
       <main className="relative z-10 flex h-[calc(100vh-100px)] flex-col xl:flex-row">
-        {/* this part is for the create room and join private sections on the left */}
         <aside className="flex w-full flex-col gap-5 border-t-4 border-primary border-r-2 bg-surface-container-lowest px-5 py-5 xl:w-[30%] xl:border-l-0 xl:border-t-0 xl:px-6 xl:py-6">
           {/* create custom room */}
           <section className="space-y-4">
@@ -324,7 +233,6 @@ export default function LobbyPage() {
             </form>
           </section>
         </aside>
-        {/* this part is for the public rooms on the right */}
         <section className="flex w-full flex-col border-r-0 border-primary px-5 py-5 xl:w-[70%] xl:px-6 xl:py-6">
           <div className="mb-6 flex items-end justify-between gap-3">
             <h1 className="font-display text-[clamp(1.5rem,2vw,2.2rem)] uppercase leading-none tracking-tight text-primary">
@@ -335,7 +243,6 @@ export default function LobbyPage() {
               {activeRoomCount} rooms active
             </span>
           </div>
-          {/* the list of public rooms is scrollable becuz it is just so cool */}
           <div className="room-scrollbar flex-1 overflow-y-auto pr-0 xl:pr-4">
             <div className="flex flex-col gap-4 pb-6">
               {roomRows.map((room) => (
@@ -399,7 +306,7 @@ export default function LobbyPage() {
                       disabled={room.disabled}
                       onClick={() => handleJoinPublicRoom(room.code)}
                       className={`w-full px-8 py-2 font-mono-ui text-base uppercase md:w-auto ${
-                        room.disabled
+                        room.disabled || !guestName.trim()
                           ? 'cursor-not-allowed bg-secondary-container text-on-secondary-container'
                           : 'neo-shadow active-press bg-primary-container text-on-primary-container'
                       }`}

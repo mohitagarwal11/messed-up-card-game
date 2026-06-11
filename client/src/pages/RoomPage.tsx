@@ -1,10 +1,11 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { getLobbyState } from '../api/rooms';
+import { getLobbyState, leaveRoom } from '../api/rooms';
 import type { Room, Player } from '../../../shared/types';
 import { PlayerCard } from '../components/PlayerCard';
 
 export default function RoomPage() {
+  const leavingRef = useRef(false);
   const { code } = useParams();
   const navigate = useNavigate();
 
@@ -20,9 +21,34 @@ export default function RoomPage() {
     }
   }, [code]);
 
+  // initial fetch + poll every 3s for lobby updates
   useEffect(() => {
     handleGetRoomDetails();
+    const interval = setInterval(handleGetRoomDetails, 3000);
+    return () => clearInterval(interval);
   }, [handleGetRoomDetails]);
+
+  useEffect(() => {
+    return () => {
+      if (leavingRef.current) return;
+      const playerId = localStorage.getItem('playerId');
+      if (!playerId || !code) return;
+      fetch(`/api/rooms/${code}/leave`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ playerId }),
+        keepalive: true,
+      });
+    };
+  }, [code]);
+
+  const handleLeave = async () => {
+    const playerId = localStorage.getItem('playerId');
+    if (!playerId || !code) return;
+    leavingRef.current = true;
+    await leaveRoom(code, playerId);
+    navigate('/lobby');
+  };
 
   const handleCopyCode = () => {
     if (!room) return;
@@ -42,6 +68,8 @@ export default function RoomPage() {
   const activePlayers = room.players.filter((p) => p.status === 'active');
   console.log(activePlayers);
   const hostName = room.players.find((p) => p.isHost)?.name ?? '—';
+  const playerId = localStorage.getItem('playerId');
+  const isHost = room.players.find((p) => p.isHost)?.id === playerId;
 
   return (
     <div className="page-shell flex h-screen flex-col">
@@ -143,16 +171,25 @@ export default function RoomPage() {
           <div className="h-1 w-full bg-primary opacity-20" />
 
           <section className="space-y-4">
-            <div className="font-mono-ui text-xs uppercase text-primary-container animate-pulse">
-              Waiting for host...
-            </div>
+            {isHost ? (
+              <button
+                type="button"
+                className="neo-shadow active-press w-full bg-primary-container py-3 font-display text-2xl uppercase text-on-primary-container"
+              >
+                Start Game
+              </button>
+            ) : (
+              <div className="font-mono-ui text-xs uppercase text-primary-container animate-pulse">
+                Waiting for host...
+              </div>
+            )}
 
-            {/* Start game — exact same classes as LobbyPage submit button */}
             <button
               type="button"
-              className="neo-shadow active-press w-full bg-primary-container py-3 font-display text-2xl uppercase text-on-primary-container"
+              onClick={handleLeave}
+              className="active-press w-full border-4 border-primary py-3 font-display text-2xl uppercase text-primary transition-colors hover:bg-primary hover:text-background"
             >
-              Start Game
+              Leave Room
             </button>
           </section>
         </aside>
