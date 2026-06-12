@@ -1,105 +1,140 @@
-@import url('https://fonts.googleapis.com/css2?family=Anton:wght@400&family=JetBrains+Mono:wght@700&family=Space+Grotesk:wght@400;500;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Anton&family=JetBrains+Mono:wght@400;700&family=Space+Grotesk:wght@400;500;700&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-html,
-body,
-#root {
-  height: 100%;
+:root {
+  --bg: #131313;
+  --bg-pattern: #1a1a1a;
+
+  --surface: #201f1f;
+  --surface-low: #0e0e0e;
+  --surface-muted: #1c1b1b;
+
+  --text: #e5e2e1;
+
+  --border: #ffffff;
+  --border-muted: #414a34;
+
+  --accent: #a6fa00;
+
+  --shadow: #000000;
 }
 
-body {
-  color: #e5e2e1;
-  font-family: 'Space Grotesk', sans-serif;
-  background-color: #0a0a0a;
-  background-image: radial-gradient(#1a1a1a 1px, transparent 1px);
-  background-size: 24px 24px;
+@layer base {
+  html,
+  body,
+  #root {
+    min-height: 100%;
+  }
+
+  body {
+    font-family: 'Space Grotesk', sans-serif;
+    color: var(--text);
+
+    background-color: var(--bg);
+    background-image: radial-gradient(var(--bg-pattern) 1px, transparent 1px);
+    background-size: 24px 24px;
+
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  ul,
+  ol {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  button {
+    cursor: pointer;
+  }
 }
 
-.font-display {
-  font-family: 'Anton', sans-serif;
+@layer components {
+  /* Typography */
+  .font-display {
+    font-family: 'Anton', sans-serif;
+  }
+
+  .font-body {
+    font-family: 'Space Grotesk', sans-serif;
+  }
+
+  .font-mono-ui {
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  /* Material Symbols */
+  .material-symbols-outlined {
+    font-variation-settings:
+      'FILL' 0,
+      'wght' 400,
+      'GRAD' 0,
+      'opsz' 24;
+  }
+
+  /* Panels */
+  .panel {
+    background: var(--surface);
+    border: 2px solid var(--border);
+  }
+
+  .panel-low {
+    background: var(--surface-low);
+    border: 2px solid var(--border);
+  }
+
+  .panel-muted {
+    background: var(--surface-muted);
+    border: 2px solid var(--border-muted);
+  }
+
+  /* Shadows */
+  .neo-shadow {
+    box-shadow: 6px 6px 0 0 var(--shadow);
+  }
+
+  .neo-shadow-neon {
+    box-shadow: 6px 6px 0 0 var(--accent);
+  }
+
+  /* Press Effect */
+  .active-press {
+    transition:
+      transform 75ms ease,
+      box-shadow 75ms ease;
+  }
+
+  .active-press:active {
+    transform: translate(4px, 4px);
+    box-shadow: none;
+  }
 }
 
-.font-body {
-  font-family: 'Space Grotesk', sans-serif;
-}
+@layer utilities {
+  .page-shell {
+    min-height: 100vh;
+    background: var(--bg);
+    color: var(--text);
+  }
 
-.font-mono-ui {
-  font-family: 'JetBrains Mono', monospace;
-}
+  /* Custom Scrollbar */
+  .room-scrollbar::-webkit-scrollbar {
+    width: 8px;
+  }
 
-.material-symbols-outlined {
-  font-variation-settings:
-    'FILL' 0,
-    'wght' 400,
-    'GRAD' 0,
-    'opsz' 24;
-}
+  .room-scrollbar::-webkit-scrollbar-track {
+    background: var(--bg);
+    border-left: 2px solid var(--border);
+  }
 
-.neo-shadow {
-  box-shadow: 6px 6px 0 0 #000;
-}
-
-.neo-shadow-neon {
-  box-shadow: 6px 6px 0 0 #a6fa00;
-}
-
-.active-press {
-  transition:
-    transform 75ms ease,
-    box-shadow 75ms ease;
-}
-
-.active-press:active {
-  transform: translate(4px, 4px);
-  box-shadow: 0 0 0 0 #000;
-}
-
-.room-scrollbar::-webkit-scrollbar {
-  width: 8px;
-}
-
-.room-scrollbar::-webkit-scrollbar-track {
-  background: #131313;
-  border-left: 2px solid #ffffff;
-}
-
-.room-scrollbar::-webkit-scrollbar-thumb {
-  background: #ffffff;
-  border: 2px solid #131313;
-}
-
-.page-shell {
-  position: relative;
-  min-height: 100vh;
-  background-color: #131313;
-  color: #e5e2e1;
-}
-
-.page-shell::before {
-  content: '';
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  background-image: radial-gradient(#1a1a1a 1px, transparent 1px);
-  background-size: 24px 24px;
-  opacity: 0.8;
-}
-
-.panel {
-  background-color: #201f1f;
-  border: 2px solid #ffffff;
-}
-
-.panel-low {
-  background-color: #0e0e0e;
-  border: 2px solid #ffffff;
-}
-
-.panel-muted {
-  background-color: #1c1b1b;
-  border: 2px solid #414a34;
+  .room-scrollbar::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border: 2px solid var(--bg);
+  }
 }
