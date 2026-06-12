@@ -163,6 +163,7 @@ export async function joinRoom(roomCode: string, playerName: string) {
     return { player, roomId: room.id };
   });
 }
+
 export async function getRoomPlayers(roomId: string) {
   return await sql`
     SELECT *
@@ -177,14 +178,14 @@ export async function getLobbyState(roomCode: string) {
   const [room] = await sql`
     SELECT
       id,
-      host_id         AS "hostId",
+      host_id,
       code,
       name,
-      is_private      AS "isPrivate",
-      max_players     AS "maxPlayers",
-      total_rounds    AS "totalRounds",
+      is_private,
+      max_players,
+      total_rounds,
       status,
-      current_round   AS "currentRound"
+      current_round
     FROM rooms
     WHERE code = ${roomCode}
   `;
@@ -207,7 +208,6 @@ export async function getLobbyState(roomCode: string) {
   return { ...room, players };
 }
 
-// Leave room function
 export async function leaveRoom(roomCode: string, playerId: string) {
   await sql.begin(async (tx) => {
     // Get room id
@@ -243,7 +243,6 @@ export async function leaveRoom(roomCode: string, playerId: string) {
   });
 }
 
-// Start game function
 export async function startGame(roomCode: string) {
   // Get the room
   const room = await getRoomByCode(roomCode);
@@ -262,6 +261,9 @@ export async function startGame(roomCode: string) {
     INSERT INTO rounds (room_id, round_number, black_card_id, phase)
     VALUES (${room.id}, 1, ${blackCard.id}, 'submitting')
     RETURNING id
+  `;
+  await sql`
+    UPDATE rooms SET current_round = 1 WHERE id = ${room.id}
   `;
   const roundId = round.id;
 
@@ -287,12 +289,7 @@ export async function startGame(roomCode: string) {
   return { blackCard, roundId };
 }
 
-/**
- * Get the current game state for a player in a room.
- * Returns the latest round, the black card for that round, and the player's hand.
- */
 export async function getGameState(roomCode: string, playerId: string) {
-  // Get the room to obtain its id
   const room = await getRoomByCode(roomCode);
 
   // Fetch the latest round for the room
@@ -324,5 +321,5 @@ export async function getGameState(roomCode: string, playerId: string) {
       AND ph.is_played = false
   `;
 
-  return { round, blackCard, hand };
+  return { room, round, blackCard, hand };
 }

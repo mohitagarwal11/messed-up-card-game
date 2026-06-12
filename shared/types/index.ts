@@ -21,14 +21,14 @@ export interface Card {
 
 export interface Room {
   id: string;
-  hostId: string | null;
+  host_id: string | null;
   code: string;
   name: string;
-  isPrivate: boolean;
-  maxPlayers: number;
-  totalRounds: number;
+  is_private: boolean;
+  max_players: number;
+  total_rounds: number;
   status: RoomStatus;
-  currentRound: number;
+  current_round: number;
   players: Player[];
 }
 
@@ -70,7 +70,7 @@ export interface ClientToServerEvents {
     totalRounds: number;
     playerName: string;
   }) => void;
-  'game:start': (payload: { roomCode: string }) => void;
+  'game:start': (payload: { roomCode: string; playerId: string }) => void;
   'card:submit': (payload: { cardId: number }) => void;
   'vote:cast': (payload: { submissionId: string }) => void;
 }

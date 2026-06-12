@@ -86,7 +86,7 @@ export default function RoomPage() {
   }
 
   const activePlayers = room.players.filter((p) => p.status === 'active');
-  console.log(activePlayers);
+  // console.log(activePlayers);
   const hostName = room.players.find((p) => p.isHost)?.name ?? '—';
   const playerId = localStorage.getItem('playerId');
   const isHost = room.players.find((p) => p.isHost)?.id === playerId;
@@ -116,7 +116,7 @@ export default function RoomPage() {
               Players
             </h1>
             <span className="font-mono-ui text-sm uppercase tracking-[0.2em] text-secondary">
-              {activePlayers.length}/{room.maxPlayers} active
+              {activePlayers.length}/{room.max_players} active
             </span>
           </div>
 
@@ -166,19 +166,19 @@ export default function RoomPage() {
               <div className="flex items-center justify-between border-b border-primary border-opacity-20 pb-2">
                 <span className="font-mono-ui text-xs uppercase text-secondary">Mode</span>
                 <span className="bg-primary-container px-2 font-mono-ui text-xs text-on-primary">
-                  {room.isPrivate ? 'PRIVATE' : 'PUBLIC'}
+                  {room.is_private ? 'PRIVATE' : 'PUBLIC'}
                 </span>
               </div>
               <div className="flex items-center justify-between border-b border-primary border-opacity-20 pb-2">
                 <span className="font-mono-ui text-xs uppercase text-secondary">Rounds</span>
                 <span className="font-display text-base text-primary">
-                  {room.currentRound} / {room.totalRounds}
+                  {room.current_round} / {room.total_rounds}
                 </span>
               </div>
               <div className="flex items-center justify-between border-b border-primary border-opacity-20 pb-2">
                 <span className="font-mono-ui text-xs uppercase text-secondary">Players</span>
                 <span className="font-display text-base text-primary">
-                  {activePlayers.length} / {room.maxPlayers}
+                  {activePlayers.length} / {room.max_players}
                 </span>
               </div>
               <div className="flex items-center justify-between">
@@ -191,6 +191,11 @@ export default function RoomPage() {
           <div className="h-1 w-full bg-primary opacity-20" />
 
           <section className="space-y-4">
+            {activePlayers.length < 3 && (
+              <div className="font-mono-ui text-xs uppercase text-primary-container animate-pulse">
+                Need 3 players to start the game...
+              </div>
+            )}
             {isHost ? (
               <button
                 type="button"
@@ -200,9 +205,13 @@ export default function RoomPage() {
                     playerId: localStorage.getItem('playerId') ?? '',
                   })
                 }
-                className="neo-shadow active-press w-full bg-primary-container py-3 font-display text-2xl uppercase text-on-primary-container"
+                className={`w-full py-3 font-display text-2xl uppercase ${
+                  activePlayers.length < 3
+                    ? 'cursor-not-allowed bg-secondary-container text-on-secondary-container'
+                    : 'neo-shadow active-press bg-primary-container text-on-primary-container'
+                }`}
               >
-                Start Game1
+                Start Game
               </button>
             ) : (
               <div className="font-mono-ui text-xs uppercase text-primary-container animate-pulse">
