@@ -32,6 +32,7 @@ export default function LandingPage() {
       localStorage.setItem('guestUser', JSON.stringify(user));
       navigate('/lobby');
     } catch (e) {
+      console.log(e);
       setError('Failed to create guest user');
     } finally {
       setLoading(false);

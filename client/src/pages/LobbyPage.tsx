@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { createRoom, getPublicRooms, getRoomByCode, joinRoom } from '../api/rooms';
 import { LetterAvatar } from '../components/LetterAvatar';
+// import { Room } from '../../../shared/types/index';
 
 type RoomRow = {
   id: string;
@@ -14,6 +15,15 @@ type RoomRow = {
   disabled: boolean;
 };
 
+type PublicRoom = {
+  id: string;
+  code: string;
+  name: string;
+  player_count: number;
+  max_players: number;
+  total_rounds: number;
+};
+
 export default function LobbyPage() {
   const navigate = useNavigate();
   const guestUser = JSON.parse(localStorage.getItem('guestUser') ?? 'null') as {
@@ -23,7 +33,7 @@ export default function LobbyPage() {
 
   useEffect(() => {
     if (!guestUser) navigate('/');
-  }, []);
+  }, [guestUser, navigate]);
   const [roomName, setRoomName] = useState('');
   const [maxPlayers, setMaxPlayers] = useState('8');
   const [totalRounds, setTotalRounds] = useState('10');
@@ -88,7 +98,7 @@ export default function LobbyPage() {
 
   useEffect(() => {
     getPublicRooms().then((data) => {
-      const rows: RoomRow[] = data.map((room: any) => ({
+      const rows: RoomRow[] = data.map((room: PublicRoom) => ({
         id: room.id,
         code: room.code,
         name: room.name,

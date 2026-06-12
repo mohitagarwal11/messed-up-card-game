@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { getLobbyState } from '../api/rooms';
+import type { Room } from '../../../shared/types';
 
 export default function GamePage() {
   const { code } = useParams();
@@ -8,13 +9,13 @@ export default function GamePage() {
 
   useEffect(() => {
     getLobbyState(code!)
-      .then((data: any) => {
-        if (data.room.status === 'waiting') {
+      .then((data: Room) => {
+        if (data.status === 'waiting') {
           navigate(`/lobby/${code}`, { replace: true });
         }
       })
       .catch(() => navigate('/', { replace: true }));
-  }, [code]);
+  }, [code, navigate]);
 
   return <div className="h-full flex items-center justify-center text-neon text-2xl">GamePage</div>;
 }
