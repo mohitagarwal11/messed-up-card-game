@@ -70,7 +70,7 @@ export interface ClientToServerEvents {
     totalRounds: number;
     playerName: string;
   }) => void;
-  'game:start': () => void;
+  'game:start': (payload: { roomCode: string }) => void;
   'card:submit': (payload: { cardId: number }) => void;
   'vote:cast': (payload: { submissionId: string }) => void;
 }

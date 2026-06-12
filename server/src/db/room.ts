@@ -163,7 +163,6 @@ export async function joinRoom(roomCode: string, playerName: string) {
     return { player, roomId: room.id };
   });
 }
-
 export async function getRoomPlayers(roomId: string) {
   return await sql`
     SELECT *
@@ -242,4 +241,48 @@ export async function leaveRoom(roomCode: string, playerId: string) {
       `;
     }
   });
+}
+
+// Start game function
+export async function startGame(roomCode: string) {
+  // Get the room
+  const room = await getRoomByCode(roomCode);
+
+  // Pick a random black card
+  const [blackCard] = await sql`
+    SELECT id, text, pick
+    FROM cards
+    WHERE color = 'black'
+    ORDER BY RANDOM()
+    LIMIT 1
+  `;
+
+  // Insert a new round
+  const [round] = await sql`
+    INSERT INTO rounds (room_id, round_number, black_card_id, phase)
+    VALUES (${room.id}, 1, ${blackCard.id}, 'submitting')
+    RETURNING id
+  `;
+  const roundId = round.id;
+
+  // Get all active players in the room
+  const players = await sql`
+    SELECT id
+    FROM room_players
+    WHERE room_id = ${room.id}
+      AND status = 'active'
+  `;
+
+  // For each player, assign 7 random white cards
+  for (const player of players) {
+    await sql`
+      INSERT INTO player_hands (room_player_id, card_id, is_played)
+      SELECT ${player.id}, id, false
+      FROM cards
+      WHERE color = 'white'
+      ORDER BY RANDOM()
+      LIMIT 7
+    `;
+  }
+  return { blackCard, roundId };
 }
