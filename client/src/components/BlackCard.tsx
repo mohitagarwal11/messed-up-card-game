@@ -1,12 +1,30 @@
-type Props = { text: string; pick?: number };
+type Props = {
+  text: string;
+  pick?: number;
+};
 
 export function BlackCard({ text, pick = 1 }: Props) {
   return (
-    <div className="w-full max-w-lg mx-auto bg-black text-white border-4 border-black neo-shadow p-8 flex flex-col justify-between aspect-[3/2]">
-      <p className="font-display text-2xl md:text-3xl leading-snug">{text}</p>
-      {pick > 1 && (
-        <p className="font-mono-ui text-xs uppercase tracking-widest text-white/50">Pick {pick}</p>
-      )}
+    <div
+      className="
+        w-full
+        max-w-[600px]
+        aspect-[2.2/1]
+        bg-surface
+        border-2
+        border-primary-container
+        shadow-[0_0_24px_rgba(166,250,0,0.8)]
+        neo-shadow
+        p-6
+        flex
+        flex-col
+      "
+    >
+      <div className="flex-1 flex items-center">
+        <p className="font-display text-primary text-3xl leading-none">{text}</p>
+      </div>
+
+      {pick > 1 && <p className="font-body text-sm text-primary-container">Pick {pick}</p>}
     </div>
   );
 }
