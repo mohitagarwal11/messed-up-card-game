@@ -40,7 +40,6 @@ export default function LobbyPage() {
   const [roomCode, setRoomCode] = useState('');
   const [isPrivate, setIsPrivate] = useState(false);
 
-  const guestName = ''; // default guest name
   const [roomRows, setRoomRows] = useState<RoomRow[]>([]);
   const activeRoomCount = roomRows.length;
 
@@ -123,7 +122,7 @@ export default function LobbyPage() {
             </span>
           </div>
 
-          <LetterAvatar name="maw11" isHost />
+          <LetterAvatar name={guestUser?.name ?? ''} isHost={false} />
         </div>
       </header>
 
@@ -313,7 +312,7 @@ export default function LobbyPage() {
                       disabled={room.disabled}
                       onClick={() => handleJoinPublicRoom(room.code)}
                       className={`w-full px-8 py-2 font-mono-ui text-base uppercase md:w-auto ${
-                        room.disabled || !guestName.trim()
+                        room.disabled
                           ? 'cursor-not-allowed bg-secondary-container text-on-secondary-container'
                           : 'neo-shadow active-press bg-primary-container text-on-primary-container'
                       }`}
