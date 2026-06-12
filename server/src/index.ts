@@ -38,9 +38,20 @@ io.on('connection', (socket) => {
   });
 
   // Handle client request to start the game
-  socket.on('game:start', async (payload: { roomCode: string }) => {
-    const { roomCode } = payload;
+  socket.on('game:start', async (payload: { roomCode: string; playerId: string }) => {
+    const { roomCode, playerId } = payload;
     try {
+      const [earliest] = await sql`
+        SELECT rp.id FROM room_players rp
+        JOIN rooms r ON r.id = rp.room_id
+        WHERE r.code = ${roomCode} AND rp.status = 'active'
+        ORDER BY rp.joined_at ASC
+        LIMIT 1
+      `;
+      if (!earliest || earliest.id !== playerId) {
+        socket.emit('error', 'Only the host can start the game');
+        return;
+      }
       await sql`UPDATE rooms SET status = 'in_progress' WHERE code = ${roomCode}`;
       await startGame(roomCode);
       const roomData = await getLobbyState(roomCode);
