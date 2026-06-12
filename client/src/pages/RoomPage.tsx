@@ -1,8 +1,9 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getLobbyState, leaveRoom } from '../api/rooms';
-import type { Room, Player } from '../../../shared/types';
+import type { Room } from '../../../shared/types';
 import { PlayerCard } from '../components/PlayerCard';
+import socket from '../socket/index';
 
 export default function RoomPage() {
   const leavingRef = useRef(false);
@@ -12,21 +13,19 @@ export default function RoomPage() {
   const [room, setRoom] = useState<Room | null>(null);
   const [copied, setCopied] = useState(false);
 
-  const handleGetRoomDetails = useCallback(async () => {
-    try {
-      const data = await getLobbyState(code!);
-      setRoom(data);
-    } catch {
-      navigate('/', { replace: true });
-    }
-  }, [code]);
-
-  // initial fetch + poll every 3s for lobby updates
   useEffect(() => {
-    handleGetRoomDetails();
-    const interval = setInterval(handleGetRoomDetails, 3000);
+    const fetch = async () => {
+      try {
+        const data = await getLobbyState(code!);
+        setRoom(data);
+      } catch {
+        navigate('/', { replace: true });
+      }
+    };
+    fetch();
+    const interval = setInterval(fetch, 3000);
     return () => clearInterval(interval);
-  }, [handleGetRoomDetails]);
+  }, [code, navigate]);
 
   useEffect(() => {
     return () => {
@@ -41,6 +40,26 @@ export default function RoomPage() {
       });
     };
   }, [code]);
+
+  //socket events handling
+  useEffect(() => {
+    socket.connect();
+    socket.emit('room:join', {
+      roomCode: code!,
+      playerName: localStorage.getItem('playerName') ?? '',
+    });
+
+    socket.on('room:state', (room) => {
+      if (room.status === 'in_progress') {
+        navigate(`/game/${code}`, { replace: true });
+      }
+    });
+
+    return () => {
+      socket.off('room:state');
+      socket.disconnect();
+    };
+  }, [code, navigate]);
 
   const handleLeave = async () => {
     const playerId = localStorage.getItem('playerId');
@@ -174,9 +193,10 @@ export default function RoomPage() {
             {isHost ? (
               <button
                 type="button"
+                onClick={() => socket.emit('game:start', { roomCode: code! })}
                 className="neo-shadow active-press w-full bg-primary-container py-3 font-display text-2xl uppercase text-on-primary-container"
               >
-                Start Game
+                Start Game1
               </button>
             ) : (
               <div className="font-mono-ui text-xs uppercase text-primary-container animate-pulse">
