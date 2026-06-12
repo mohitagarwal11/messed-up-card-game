@@ -51,6 +51,7 @@ export default function RoomPage() {
 
     socket.on('room:state', (room) => {
       if (room.status === 'in_progress') {
+        leavingRef.current = true;
         navigate(`/game/${code}`, { replace: true });
       }
     });
@@ -193,7 +194,12 @@ export default function RoomPage() {
             {isHost ? (
               <button
                 type="button"
-                onClick={() => socket.emit('game:start', { roomCode: code! })}
+                onClick={() =>
+                  socket.emit('game:start', {
+                    roomCode: code!,
+                    playerId: localStorage.getItem('playerId') ?? '',
+                  })
+                }
                 className="neo-shadow active-press w-full bg-primary-container py-3 font-display text-2xl uppercase text-on-primary-container"
               >
                 Start Game1
