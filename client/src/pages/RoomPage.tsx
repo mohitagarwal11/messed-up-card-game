@@ -46,7 +46,7 @@ export default function RoomPage() {
     socket.connect();
     socket.emit('room:join', {
       roomCode: code!,
-      playerName: localStorage.getItem('playerName') ?? '',
+      playerName: JSON.parse(localStorage.getItem('guestUser') ?? 'null')?.name ?? '',
     });
 
     socket.on('room:state', (room) => {

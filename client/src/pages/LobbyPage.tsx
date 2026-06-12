@@ -61,7 +61,6 @@ export default function LobbyPage() {
       return;
     }
     localStorage.setItem('playerId', player.id);
-    localStorage.setItem('playerName', player.name);
     navigate(`/lobby/${room.code}`);
   };
 
@@ -78,7 +77,6 @@ export default function LobbyPage() {
     try {
       const { player } = await joinRoom(room.code, guestUser!.name);
       localStorage.setItem('playerId', player.id);
-      localStorage.setItem('playerName', guestUser!.name);
       navigate(`/lobby/${room.code}`);
     } catch (err) {
       console.error('Failed to join room:', err);
@@ -89,7 +87,6 @@ export default function LobbyPage() {
     try {
       const { player } = await joinRoom(code, guestUser!.name);
       localStorage.setItem('playerId', player.id);
-      localStorage.setItem('playerName', guestUser!.name);
       navigate(`/lobby/${code}`);
     } catch (err) {
       console.error('Failed to join room:', err);
