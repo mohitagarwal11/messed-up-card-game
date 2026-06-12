@@ -7,6 +7,7 @@ import {
   getRoomPlayers,
   joinRoom,
   leaveRoom,
+  getGameState,
 } from '../db/room';
 
 const router = Router();
@@ -148,4 +149,22 @@ router.post('/:code/leave', async (req, res) => {
   }
 });
 
+// get game state route
+router.get('/:code/game-state', async (req, res) => {
+  const playerId = req.query.playerId as string;
+  if (!playerId) {
+    return res.status(400).json({ message: 'playerId is required' });
+  }
+  try {
+    const gameState = await getGameState(req.params.code, playerId);
+    return res.status(200).json(gameState);
+  } catch (error) {
+    console.error(error);
+    const message = error instanceof Error ? error.message : 'Failed to get game state.';
+    if (message === 'Room not found' || message === 'Round not found') {
+      return res.status(404).json({ message });
+    }
+    return res.status(500).json({ message: 'Failed to get game state.' });
+  }
+});
 export default router;

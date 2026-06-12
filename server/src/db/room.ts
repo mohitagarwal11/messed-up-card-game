@@ -286,3 +286,43 @@ export async function startGame(roomCode: string) {
   }
   return { blackCard, roundId };
 }
+
+/**
+ * Get the current game state for a player in a room.
+ * Returns the latest round, the black card for that round, and the player's hand.
+ */
+export async function getGameState(roomCode: string, playerId: string) {
+  // Get the room to obtain its id
+  const room = await getRoomByCode(roomCode);
+
+  // Fetch the latest round for the room
+  const [round] = await sql`
+    SELECT id, black_card_id AS "blackCardId", phase, round_number AS "roundNumber"
+    FROM rounds
+    WHERE room_id = ${room.id}
+    ORDER BY round_number DESC
+    LIMIT 1
+  `;
+
+  if (!round) {
+    throw new Error('Round not found');
+  }
+
+  // Fetch the black card for the round
+  const [blackCard] = await sql`
+    SELECT id, text, pick
+    FROM cards
+    WHERE id = ${round.blackCardId}
+  `;
+
+  // Fetch the player's hand (unplayed cards)
+  const hand = await sql`
+    SELECT c.id, c.text, c.pick
+    FROM player_hands ph
+    JOIN cards c ON c.id = ph.card_id
+    WHERE ph.room_player_id = ${playerId}
+      AND ph.is_played = false
+  `;
+
+  return { round, blackCard, hand };
+}
