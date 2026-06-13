@@ -1,5 +1,6 @@
 import sql from './client';
 import generateRoomCode from '../utils/generateRoomCode';
+import type { Player } from '@shared/types';
 
 export async function createRoom(data: {
   name: string;
@@ -322,4 +323,182 @@ export async function getGameState(roomCode: string, playerId: string) {
   `;
 
   return { room, round, blackCard, hand };
+}
+
+// Submit a card for a round and mark it as played for that player
+export async function submitCard(
+  roundId: string,
+  playerId: string,
+  cardId: number,
+): Promise<number> {
+  return await sql.begin(async (tx) => {
+    await tx`
+      INSERT INTO submissions (round_id, room_player_id, card_id)
+      VALUES (${roundId}, ${playerId}, ${cardId})
+    `;
+    await tx`
+      UPDATE player_hands
+      SET is_played = true
+      WHERE room_player_id = ${playerId}
+        AND card_id = ${cardId}
+    `;
+    const [result] = await tx`
+      SELECT COUNT(*)::int AS count
+      FROM submissions
+      WHERE round_id = ${roundId}
+    `;
+    return result.count;
+  });
+}
+
+// Deal a new random white card to a player
+export async function dealNewCard(playerId: string): Promise<void> {
+  // Get all card IDs the player has ever held
+  const heldRows = await sql`
+    SELECT card_id FROM player_hands
+    WHERE room_player_id = ${playerId}
+  `;
+  const heldIds = heldRows.map((row: any) => row.card_id);
+  // Select a random white card not already held, if possible
+  const [card] = await sql`
+    SELECT id FROM cards
+    WHERE color = 'white'
+    ${heldIds.length > 0 ? sql`AND id NOT IN (${heldIds})` : sql``}
+    ORDER BY RANDOM()
+    LIMIT 1
+  `;
+  let cardId: number;
+  if (card) {
+    cardId = card.id;
+  } else {
+    // All cards exhausted, pick any random white card
+    const [fallback] = await sql`
+      SELECT id FROM cards
+      WHERE color = 'white'
+      ORDER BY RANDOM()
+      LIMIT 1
+    `;
+    if (!fallback) throw new Error('No white cards available');
+    cardId = fallback.id;
+  }
+  // Insert the new card into the player's hand
+  await sql`
+    INSERT INTO player_hands (room_player_id, card_id, is_played)
+    VALUES (${playerId}, ${cardId}, false)
+  `;
+}
+
+// Cast a vote for a submission in a round
+export async function castVote(
+  roundId: string,
+  voterId: string,
+  submissionId: string,
+): Promise<number> {
+  return await sql.begin(async (tx) => {
+    await tx`
+      INSERT INTO votes (round_id, voter_id, submission_id)
+      VALUES (${roundId}, ${voterId}, ${submissionId})
+    `;
+    const [result] = await tx`
+      SELECT COUNT(*)::int AS count
+      FROM votes
+      WHERE round_id = ${roundId}
+    `;
+    return result.count;
+  });
+}
+
+// Resolve a round: determine winners, update scores, deal new cards, advance round
+export async function resolveRound(
+  roomCode: string,
+  roundId: string,
+): Promise<{ winners: string[]; players: Player[]; isGameOver: boolean }> {
+  // Count votes per submission for this round
+  const voteCounts = await sql`
+    SELECT submission_id, COUNT(*)::int AS count
+    FROM votes
+    WHERE round_id = ${roundId}
+    GROUP BY submission_id
+  `;
+
+  // Determine max vote count
+  let maxCount = 0;
+  for (const row of voteCounts) {
+    if (row.count > maxCount) maxCount = row.count;
+  }
+
+  // Winning submission IDs (could be multiple on tie)
+  const winningSubmissionIds = voteCounts
+    .filter((row) => row.count === maxCount)
+    .map((row) => row.submission_id);
+
+  // Insert winners into round_winners and update player scores
+  await sql.begin(async (tx) => {
+    // Insert round winners
+    for (const subId of winningSubmissionIds) {
+      await tx`
+        INSERT INTO round_winners (round_id, submission_id)
+        VALUES (${roundId}, ${subId})
+      `;
+    }
+
+    // Get player IDs for winning submissions
+    if (winningSubmissionIds.length > 0) {
+      const winningSubs = await tx`
+        SELECT room_player_id FROM submissions
+        WHERE id = ANY(${winningSubmissionIds})
+      `;
+      const winnerPlayerIds = winningSubs.map((row) => row.room_player_id);
+      if (winnerPlayerIds.length > 0) {
+        await tx`
+          UPDATE room_players
+          SET score = score + 1
+          WHERE id = ANY(${winnerPlayerIds})
+        `;
+      }
+    }
+
+    // Advance the room's current round
+    await tx`
+      UPDATE rooms
+      SET current_round = current_round + 1
+      WHERE code = ${roomCode}
+    `;
+  });
+
+  // Deal a new card to each active player in the room
+  const activePlayers = await sql`
+    SELECT id FROM room_players
+    WHERE room_id = (SELECT id FROM rooms WHERE code = ${roomCode})
+      AND status = 'active'
+  `;
+  for (const p of activePlayers) {
+    await dealNewCard(p.id);
+  }
+
+  // Fetch updated room to determine if game is over
+  const [room] = await sql`
+    SELECT current_round, total_rounds FROM rooms WHERE code = ${roomCode}
+  `;
+  const isGameOver = room.current_round >= room.total_rounds;
+
+  // Get updated player list (lobby state) and map to Player type
+  const lobby = await getLobbyState(roomCode);
+  const players: Player[] = lobby.players.map((p: any) => ({
+    id: p.id,
+    name: p.name,
+    score: p.score,
+    status: p.status,
+    isHost: p.isHost,
+  }));
+
+  // Return winner player IDs (as strings)
+  const winnerPlayerIds = (
+    await sql`
+    SELECT room_player_id FROM submissions
+    WHERE id = ANY(${winningSubmissionIds})
+  `
+  ).map((row) => row.room_player_id);
+
+  return { winners: winnerPlayerIds, players, isGameOver };
 }

@@ -33,6 +33,7 @@
 - Batch all terminal commands into one shell call where possible.
 - Do not verify a file write by re-reading it immediately after.
 - Do not run `ls` or `find` to explore structure — ask if uncertain.
+- Do not attempt to install global CLI tools. Run compile checks with npx tsc --noEmit only.
 
 ## Error Handling
 
@@ -44,6 +45,7 @@
 - Only touch files explicitly mentioned or directly required.
 - Do not refactor, rename, or reformat anything outside the task scope.
 - Do not introduce new dependencies unless asked.
+- When adding functions to an existing file, append only. Do not rewrite existing functions.
 
 ## Assumptions
 

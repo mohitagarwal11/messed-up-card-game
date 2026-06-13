@@ -54,7 +54,7 @@ export interface ServerToClientEvents {
   'room:state': (room: Room) => void;
   'round:start': (round: RoundState) => void;
   'phase:vote': (submissions: Submission[]) => void;
-  'round:end': (round: RoundState) => void;
+  'round:end': (result: { winners: string[]; players: Player[]; isGameOver: boolean }) => void;
   'game:end': (finalScores: Player[]) => void;
   'player:joined': (player: Player) => void;
   'player:left': (playerId: string) => void;
@@ -71,6 +71,16 @@ export interface ClientToServerEvents {
     playerName: string;
   }) => void;
   'game:start': (payload: { roomCode: string; playerId: string }) => void;
-  'card:submit': (payload: { cardId: number }) => void;
-  'vote:cast': (payload: { submissionId: string }) => void;
+  'card:submit': (payload: {
+    roomCode: string;
+    roundId: string;
+    cardId: number;
+    playerId: string;
+  }) => Promise<void>;
+  'vote:cast': (payload: {
+    roomCode: string;
+    roundId: string;
+    submissionId: string;
+    playerId: string;
+  }) => Promise<void>;
 }
