@@ -15,7 +15,7 @@
 
 ## Plan Mode
 
-- Output a flat checklist of files to modify and the change type. Max 80 words.
+- Output a flat checklist of files to modify and the change type.
 - Do not ask clarifying questions mid-task. Make a reasonable assumption and state it in one line.
 
 ## Act Mode

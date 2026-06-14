@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { getGameState } from '../api/rooms';
+import { getGameState, leaveRoom, resetRoom } from '../api/rooms';
 import socket from '../socket/index';
 import SubmittingPhase from '../components/SubmittingPhase';
 import VotingPhase from '../components/VotingPhase';
@@ -12,6 +12,7 @@ export type GameState = {
   blackCard: { id: number; text: string; pick: number };
   hand: Card[];
   totalRounds: number;
+  hostId?: string;
 };
 
 export type RoundResult = { winners: string[]; players: Player[]; isGameOver: boolean };
@@ -30,6 +31,9 @@ export default function GamePage() {
   const [hasSubmitted, setHasSubmitted] = useState(false);
   const [hasVoted, setHasVoted] = useState(false);
   const [timeLeft, setTimeLeft] = useState(30);
+  // Determine host ID from gameState (if available) or from roundResult players list
+  const hostId = gameState?.hostId ?? roundResult?.players?.find((p) => p.isHost)?.id;
+  const isHost = hostId === playerId;
 
   useEffect(() => {
     if (!playerId) {
@@ -59,6 +63,11 @@ export default function GamePage() {
       navigate('/lobby');
     });
 
+    // When the host resets the room after game over, navigate all players back to lobby
+    socket.on('room:reset', () => {
+      navigate('/lobby');
+    });
+
     socket.on('round:start', (round) => {
       getGameState(roomCode, playerId!).then((data) => {
         setGameState(data);
@@ -75,6 +84,7 @@ export default function GamePage() {
       socket.off('phase:vote');
       socket.off('round:end');
       socket.off('game:end');
+      socket.off('room:reset');
       socket.off('round:start');
       socket.disconnect();
     };
@@ -155,6 +165,17 @@ export default function GamePage() {
     setHasVoted(true);
   };
 
+  const handleLeaveRoom = async () => {
+    if (!playerId) return;
+    await leaveRoom(roomCode, playerId);
+    navigate('/lobby');
+  };
+
+  const handleBackToLobby = async () => {
+    await resetRoom(roomCode);
+    navigate('/lobby');
+  };
+
   if (!gameState) {
     return (
       <div className="page-shell flex items-center justify-center">
@@ -204,6 +225,9 @@ export default function GamePage() {
         submissions={submissions}
         roundNumber={gameState.round.roundNumber}
         totalRounds={gameState.totalRounds}
+        onLeave={handleLeaveRoom}
+        onBackToLobby={handleBackToLobby}
+        isHost={isHost}
       />
     );
   }

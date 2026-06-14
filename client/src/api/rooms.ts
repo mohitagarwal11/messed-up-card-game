@@ -35,6 +35,10 @@ export async function leaveRoom(roomCode: string, playerId: string): Promise<voi
   await client.post(`/rooms/${roomCode}/leave`, { playerId });
 }
 
+export async function resetRoom(roomCode: string) {
+  await client.post(`/rooms/${roomCode}/reset`);
+}
+
 export async function getGameState(roomCode: string, playerId: string) {
   const response = await client.get(`/rooms/${roomCode}/game-state`, {
     params: { playerId },

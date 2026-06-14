@@ -11,6 +11,9 @@ interface ResultsPhaseProps {
   submissions: Submission[];
   roundNumber: number;
   totalRounds: number;
+  onLeave: () => void;
+  onBackToLobby: () => void;
+  isHost: boolean;
 }
 
 export default function ResultsPhase({
@@ -19,6 +22,9 @@ export default function ResultsPhase({
   submissions,
   roundNumber,
   totalRounds,
+  onLeave,
+  onBackToLobby,
+  isHost,
 }: ResultsPhaseProps) {
   const [countdown, setCountdown] = useState(30);
 
@@ -92,6 +98,25 @@ export default function ResultsPhase({
         ) : (
           `NEXT ROUND IN ${countdown}s`
         )}
+      </div>
+
+      <div className="flex justify-center items-center gap-6 mb-10">
+        {isHost && (
+          <button
+            type="button"
+            onClick={onBackToLobby}
+            className="w-full max-w-sm mt-4 font-display text-2xl uppercase py-4 neo-shadow active-press transition-all bg-[var(--accent)] text-black"
+          >
+            Back to Lobby
+          </button>
+        )}
+        <button
+          type="button"
+          onClick={onLeave}
+          className="w-full max-w-sm mt-4 font-display text-2xl uppercase py-4 neo-shadow active-press transition-all bg-[var(--accent)] text-black"
+        >
+          Leave Room
+        </button>
       </div>
     </div>
   );

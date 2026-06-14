@@ -8,7 +8,7 @@ export function BlackCard({ text, pick = 1 }: Props) {
     <div
       className="
         w-full
-        max-w-[600px]
+        max-w-[500px]
         aspect-[2.2/1]
         bg-surface
         border-2
