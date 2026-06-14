@@ -37,6 +37,7 @@ export interface Submission {
   playerId: string;
   card: Card;
   isAutoPicked: boolean;
+  voteCount?: number;
 }
 
 export interface RoundState {
@@ -58,6 +59,7 @@ export interface ServerToClientEvents {
   'game:end': (finalScores: Player[]) => void;
   'player:joined': (player: Player) => void;
   'player:left': (playerId: string) => void;
+  'room:reset': () => void;
   error: (message: string) => void;
 }
 
@@ -76,11 +78,11 @@ export interface ClientToServerEvents {
     roundId: string;
     cardId: number;
     playerId: string;
-  }) => Promise<void>;
+  }) => void;
   'vote:cast': (payload: {
     roomCode: string;
     roundId: string;
     submissionId: string;
     playerId: string;
-  }) => Promise<void>;
+  }) => void;
 }
