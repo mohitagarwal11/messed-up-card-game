@@ -34,6 +34,8 @@ export default function LobbyPage() {
   useEffect(() => {
     if (!guestUser) navigate('/');
   }, [guestUser, navigate]);
+
+  const [error, setError] = useState<string | null>(null);
   const [roomName, setRoomName] = useState('');
   const [maxPlayers, setMaxPlayers] = useState('8');
   const [totalRounds, setTotalRounds] = useState('10');
@@ -45,40 +47,33 @@ export default function LobbyPage() {
 
   const handleCreateRoom = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-
-    const payload = {
-      name: roomName.trim(),
-      isPrivate,
-      maxPlayers: Number(maxPlayers),
-      totalRounds: Number(totalRounds),
-      playerName: guestUser!.name,
-    };
-
-    const { room, player } = await createRoom(payload);
-    if (!room) {
-      console.log('Failed to create room');
-      return;
+    try {
+      const { room, player } = await createRoom({
+        name: roomName.trim(),
+        isPrivate,
+        maxPlayers: Number(maxPlayers),
+        totalRounds: Number(totalRounds),
+        playerName: guestUser!.name,
+      });
+      localStorage.setItem('playerId', player.id);
+      navigate(`/lobby/${room.code}`);
+    } catch (err) {
+      console.error('Failed to create room:', err);
+      setError('Failed to create room. Try again.');
     }
-    localStorage.setItem('playerId', player.id);
-    navigate(`/lobby/${room.code}`);
   };
 
   const handleJoinPrivateRoom = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
-    const room = await getRoomByCode(roomCode);
-
-    if (!room) {
-      console.log('Failed to get room with Code: ', roomCode);
-      return;
-    }
-
     try {
+      const room = await getRoomByCode(roomCode);
       const { player } = await joinRoom(room.code, guestUser!.name);
       localStorage.setItem('playerId', player.id);
       navigate(`/lobby/${room.code}`);
     } catch (err) {
       console.error('Failed to join room:', err);
+      setError('Failed to join room. Try again.');
     }
   };
 
@@ -89,6 +84,7 @@ export default function LobbyPage() {
       navigate(`/lobby/${code}`);
     } catch (err) {
       console.error('Failed to join room:', err);
+      setError('Failed to join room. Try again.');
     }
   };
 

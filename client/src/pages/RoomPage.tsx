@@ -10,6 +10,7 @@ export default function RoomPage() {
   const { code } = useParams();
   const navigate = useNavigate();
 
+  const [starting, setStarting] = useState(false);
   const [room, setRoom] = useState<Room | null>(null);
   const [copied, setCopied] = useState(false);
 
@@ -199,19 +200,21 @@ export default function RoomPage() {
             {isHost ? (
               <button
                 type="button"
-                onClick={() =>
+                disabled={activePlayers.length < 3 || starting}
+                onClick={() => {
+                  setStarting(true);
                   socket.emit('game:start', {
                     roomCode: code!,
                     playerId: localStorage.getItem('playerId') ?? '',
-                  })
-                }
+                  });
+                }}
                 className={`w-full py-3 font-display text-2xl uppercase ${
-                  activePlayers.length < 3
+                  activePlayers.length < 3 || starting
                     ? 'cursor-not-allowed bg-secondary-container text-on-secondary-container'
                     : 'neo-shadow active-press bg-primary-container text-on-primary-container'
                 }`}
               >
-                Start Game
+                {starting ? 'STARTING...' : 'Start Game'}
               </button>
             ) : (
               <div className="font-mono-ui text-xs uppercase text-primary-container animate-pulse">
