@@ -13,7 +13,7 @@ export function WhiteCard({ text, selected, onClick, style }: Props) {
       className={`
         relative
         w-[180px]
-        h-[225px]
+        h-[250px]
         shrink-0
         bg-primary
         text-dark
