@@ -1,6 +1,6 @@
 import sql from './client';
 import generateRoomCode from '../utils/generateRoomCode';
-import type { Player } from '@shared/types';
+import type { Player, RoundResult, GameState, RoundState, Card, GamePhase } from '@shared/types';
 
 export async function createRoom(data: {
   name: string;
@@ -333,11 +333,11 @@ export async function startGame(roomCode: string) {
   return { blackCard, roundId };
 }
 
-export async function getGameState(roomCode: string, playerId: string) {
+export async function getGameState(roomCode: string, playerId: string): Promise<GameState> {
   const room = await getRoomByCode(roomCode);
 
   // Fetch the latest round for the room
-  const [round] = await sql`
+  const [roundRow] = await sql`
     SELECT id, black_card_id AS "blackCardId", phase, round_number AS "roundNumber"
     FROM rounds
     WHERE room_id = ${room.id}
@@ -345,7 +345,7 @@ export async function getGameState(roomCode: string, playerId: string) {
     LIMIT 1
   `;
 
-  if (!round) {
+  if (!roundRow) {
     throw new Error('Round not found');
   }
 
@@ -353,7 +353,7 @@ export async function getGameState(roomCode: string, playerId: string) {
   const [blackCard] = await sql`
     SELECT id, text, pick
     FROM cards
-    WHERE id = ${round.blackCardId}
+    WHERE id = ${roundRow.blackCardId}
   `;
 
   // Fetch the player's hand (unplayed cards)
@@ -365,7 +365,22 @@ export async function getGameState(roomCode: string, playerId: string) {
       AND ph.is_played = false
   `;
 
-  return { round, blackCard, hand, totalRounds: room.total_rounds };
+  const round: RoundState = {
+    id: roundRow.id,
+    roundNumber: roundRow.roundNumber,
+    blackCard: blackCard as Card,
+    phase: roundRow.phase as GamePhase,
+    phaseEndsAt: '',
+    submissions: [],
+    winners: [],
+  };
+
+  return {
+    round,
+    hand: hand as unknown as Card[],
+    totalRounds: room.total_rounds,
+    hostId: room.host_id,
+  };
 }
 
 // Submit a card for a round and mark it as played for that player
@@ -456,7 +471,7 @@ export async function castVote(
 export async function resolveRound(
   roomCode: string,
   roundId: string,
-): Promise<{ winners: string[]; players: Player[]; isGameOver: boolean }> {
+): Promise<RoundResult> {
   const voteCounts = await sql`
     SELECT submission_id, COUNT(*)::int AS count
     FROM votes

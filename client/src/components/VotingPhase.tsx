@@ -1,10 +1,10 @@
 import { BlackCard } from './BlackCard';
 import { WhiteCard } from './WhiteCard';
 import { GameHeader } from './GameHeader';
-import type { Submission } from '../../../shared/types';
+import type { Submission, Card } from '../../../shared/types';
 
 interface VotingPhaseProps {
-  blackCard: { text: string; pick: number };
+  blackCard: Pick<Card, 'text' | 'pick'>;
   submissions: Submission[];
   selectedSubmissionId: string | null;
   onSelectSubmission: (id: string) => void;

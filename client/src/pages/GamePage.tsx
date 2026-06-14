@@ -5,17 +5,7 @@ import socket from '../socket/index';
 import SubmittingPhase from '../components/SubmittingPhase';
 import VotingPhase from '../components/VotingPhase';
 import ResultsPhase from '../components/ResultsPhase';
-import type { Card, Submission, Player } from '../../../shared/types';
-
-export type GameState = {
-  round: { id: string; roundNumber: number; phase: string };
-  blackCard: { id: number; text: string; pick: number };
-  hand: Card[];
-  totalRounds: number;
-  hostId?: string;
-};
-
-export type RoundResult = { winners: string[]; players: Player[]; isGameOver: boolean };
+import type { Submission, GameState, RoundResult } from '../../../shared/types';
 
 export default function GamePage() {
   const navigate = useNavigate();
@@ -187,7 +177,7 @@ export default function GamePage() {
   if (phase === 'submitting' || phase === 'waiting') {
     return (
       <SubmittingPhase
-        blackCard={gameState.blackCard}
+        blackCard={gameState.round.blackCard}
         hand={gameState.hand}
         selectedCardId={selectedCardId}
         onSelectCard={setSelectedCardId}
@@ -208,7 +198,7 @@ export default function GamePage() {
         onSelectSubmission={setSelectedSubmissionId}
         hasVoted={hasVoted}
         onVote={submitVote}
-        blackCard={gameState.blackCard}
+        blackCard={gameState.round.blackCard}
         timeLeft={timeLeft}
         playerId={playerId!}
         roundNumber={gameState.round.roundNumber}
@@ -221,7 +211,7 @@ export default function GamePage() {
     return (
       <ResultsPhase
         roundResult={roundResult}
-        blackCard={gameState.blackCard}
+        blackCard={gameState.round.blackCard}
         submissions={submissions}
         roundNumber={gameState.round.roundNumber}
         totalRounds={gameState.totalRounds}

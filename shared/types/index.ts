@@ -50,6 +50,19 @@ export interface RoundState {
   winners: string[];
 }
 
+export interface GameState {
+  round: RoundState;
+  hand: Card[];
+  totalRounds: number;
+  hostId?: string;
+}
+
+export interface RoundResult {
+  winners: string[];
+  players: Player[];
+  isGameOver: boolean;
+}
+
 // ─── Socket Event Maps ───────────────────────────────────────
 export interface ServerToClientEvents {
   'room:state': (room: Room) => void;

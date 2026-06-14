@@ -1,5 +1,4 @@
-import type { Submission } from '../../../shared/types';
-import type { RoundResult } from '../pages/GamePage';
+import type { Submission, RoundResult, Card } from '../../../shared/types';
 import { BlackCard } from './BlackCard';
 import { WhiteCard } from './WhiteCard';
 import { GameHeader } from './GameHeader';
@@ -7,7 +6,7 @@ import { useEffect, useState } from 'react';
 
 interface ResultsPhaseProps {
   roundResult: RoundResult;
-  blackCard: { text: string; pick: number };
+  blackCard: Pick<Card, 'text' | 'pick'>;
   submissions: Submission[];
   roundNumber: number;
   totalRounds: number;

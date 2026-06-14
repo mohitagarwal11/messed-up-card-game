@@ -1,10 +1,11 @@
 import { BlackCard } from './BlackCard';
 import { GameHeader } from './GameHeader';
 import { WhiteCard } from './WhiteCard';
+import type { Card } from '../../../shared/types';
 
 interface SubmittingPhaseProps {
-  blackCard: { text: string; pick: number };
-  hand: { id: number; text: string; pick: number }[];
+  blackCard: Pick<Card, 'text' | 'pick'>;
+  hand: Card[];
   selectedCardId: number | null;
   onSelectCard: (id: number) => void;
   onSubmit: () => void;
