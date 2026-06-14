@@ -54,6 +54,10 @@ export async function createRoom(data: {
   return room;
 }
 
+export async function deleteRoom(roomCode: string) {
+  await sql`DELETE FROM rooms WHERE code = ${roomCode}`;
+}
+
 export async function getPublicRooms() {
   return await sql`
     SELECT
@@ -210,37 +214,76 @@ export async function getLobbyState(roomCode: string) {
 }
 
 export async function leaveRoom(roomCode: string, playerId: string) {
-  await sql.begin(async (tx) => {
-    // Get room id
+  return await sql.begin(async (tx) => {
+    // Get room id and status
     const [room] = await tx`
-      SELECT id FROM rooms WHERE code = ${roomCode}
-    `;
+      SELECT id, status FROM rooms WHERE code = ${roomCode}`;
     if (!room) {
       // Room may already be deleted
-      return;
+      return { playerCount: 0, wasReset: false };
     }
 
     const roomId = room.id;
+    const roomStatus = room.status;
 
-    // Get earliest-joined active player
+    // Determine earliest active player before deletion (host)
     const [earliest] = await tx`
       SELECT id FROM room_players
       WHERE room_id = ${roomId} AND status = 'active'
       ORDER BY joined_at ASC
-      LIMIT 1
-    `;
+      LIMIT 1`;
 
+    // Delete the leaving player's row (cascade deletes related data)
+    await tx`DELETE FROM room_players WHERE id = ${playerId}`;
+
+    // If the leaving player was the host, transfer host to next earliest active player
     if (earliest && earliest.id === playerId) {
-      // Host leaving, delete room (cascade deletes players)
-      await tx`DELETE FROM rooms WHERE id = ${roomId}`;
-    } else {
-      // Update player status to disconnected
-      await tx`
-        UPDATE room_players
-        SET status = 'disconnected'
-        WHERE id = ${playerId}
-      `;
+      const [newHost] = await tx`
+        SELECT id FROM room_players
+        WHERE room_id = ${roomId} AND status = 'active'
+        ORDER BY joined_at ASC
+        LIMIT 1`;
+      await tx`UPDATE rooms SET host_id = ${newHost ? newHost.id : null} WHERE id = ${roomId}`;
     }
+
+    // Count remaining active players
+    const [countRow] = await tx`
+      SELECT COUNT(*)::int AS count
+      FROM room_players
+      WHERE room_id = ${roomId} AND status = 'active'`;
+    const playerCount = countRow.count;
+
+    let wasReset = false;
+
+    if (playerCount === 0) {
+      // Delete the room entirely
+      await tx`DELETE FROM rooms WHERE id = ${roomId}`;
+    } else if (roomStatus === 'in_progress' && playerCount < 3) {
+      // Reset the room if in progress and too few players
+      await resetRoom(roomCode);
+      wasReset = true;
+    }
+
+    return { playerCount, wasReset };
+  });
+}
+
+// Reset a room to waiting state, clear rounds and player hands
+export async function resetRoom(roomCode: string) {
+  await sql.begin(async (tx) => {
+    const [room] = await tx`SELECT id FROM rooms WHERE code = ${roomCode}`;
+    if (!room) return;
+    const roomId = room.id;
+    // Reset room status and round counter
+    await tx`UPDATE rooms SET status = 'waiting', current_round = 0 WHERE id = ${roomId}`;
+    // Delete all rounds (cascades submissions, votes, round_winners)
+    await tx`DELETE FROM rounds WHERE room_id = ${roomId}`;
+    // Delete all player hands for active players in this room
+    await tx`
+      DELETE FROM player_hands
+      WHERE room_player_id IN (
+        SELECT id FROM room_players WHERE room_id = ${roomId} AND status = 'active'
+      )`;
   });
 }
 
@@ -322,7 +365,7 @@ export async function getGameState(roomCode: string, playerId: string) {
       AND ph.is_played = false
   `;
 
-  return { room, round, blackCard, hand };
+  return { round, blackCard, hand, totalRounds: room.total_rounds };
 }
 
 // Submit a card for a round and mark it as played for that player
@@ -363,10 +406,11 @@ export async function dealNewCard(playerId: string): Promise<void> {
   const [card] = await sql`
     SELECT id FROM cards
     WHERE color = 'white'
-    ${heldIds.length > 0 ? sql`AND id NOT IN (${heldIds})` : sql``}
+    ${heldIds.length > 0 ? sql`AND id != ALL(${heldIds})` : sql``}
     ORDER BY RANDOM()
     LIMIT 1
   `;
+
   let cardId: number;
   if (card) {
     cardId = card.id;
@@ -413,7 +457,6 @@ export async function resolveRound(
   roomCode: string,
   roundId: string,
 ): Promise<{ winners: string[]; players: Player[]; isGameOver: boolean }> {
-  // Count votes per submission for this round
   const voteCounts = await sql`
     SELECT submission_id, COUNT(*)::int AS count
     FROM votes
@@ -421,44 +464,39 @@ export async function resolveRound(
     GROUP BY submission_id
   `;
 
-  // Determine max vote count
   let maxCount = 0;
   for (const row of voteCounts) {
     if (row.count > maxCount) maxCount = row.count;
   }
 
-  // Winning submission IDs (could be multiple on tie)
   const winningSubmissionIds = voteCounts
     .filter((row) => row.count === maxCount)
     .map((row) => row.submission_id);
 
-  // Insert winners into round_winners and update player scores
-  await sql.begin(async (tx) => {
-    // Insert round winners
-    for (const subId of winningSubmissionIds) {
-      await tx`
-        INSERT INTO round_winners (round_id, submission_id)
-        VALUES (${roundId}, ${subId})
-      `;
-    }
+  let winnerPlayerIds: string[] = [];
 
-    // Get player IDs for winning submissions
+  await sql.begin(async (tx) => {
     if (winningSubmissionIds.length > 0) {
       const winningSubs = await tx`
         SELECT room_player_id FROM submissions
         WHERE id = ANY(${winningSubmissionIds})
       `;
-      const winnerPlayerIds = winningSubs.map((row) => row.room_player_id);
-      if (winnerPlayerIds.length > 0) {
+      winnerPlayerIds = winningSubs.map((row) => row.room_player_id);
+
+      for (const playerId of winnerPlayerIds) {
         await tx`
-          UPDATE room_players
-          SET score = score + 1
-          WHERE id = ANY(${winnerPlayerIds})
+          INSERT INTO round_winners (round_id, room_player_id, vote_count)
+          VALUES (${roundId}, ${playerId}, ${maxCount})
         `;
       }
+
+      await tx`
+        UPDATE room_players
+        SET score = score + 1
+        WHERE id = ANY(${winnerPlayerIds})
+      `;
     }
 
-    // Advance the room's current round
     await tx`
       UPDATE rooms
       SET current_round = current_round + 1
@@ -466,7 +504,6 @@ export async function resolveRound(
     `;
   });
 
-  // Deal a new card to each active player in the room
   const activePlayers = await sql`
     SELECT id FROM room_players
     WHERE room_id = (SELECT id FROM rooms WHERE code = ${roomCode})
@@ -476,13 +513,15 @@ export async function resolveRound(
     await dealNewCard(p.id);
   }
 
-  // Fetch updated room to determine if game is over
   const [room] = await sql`
     SELECT current_round, total_rounds FROM rooms WHERE code = ${roomCode}
   `;
-  const isGameOver = room.current_round >= room.total_rounds;
+  const isGameOver = room.current_round > room.total_rounds;
 
-  // Get updated player list (lobby state) and map to Player type
+  if (isGameOver) {
+    await sql`UPDATE rooms SET status = 'finished' WHERE code = ${roomCode}`;
+  }
+
   const lobby = await getLobbyState(roomCode);
   const players: Player[] = lobby.players.map((p: any) => ({
     id: p.id,
@@ -491,14 +530,6 @@ export async function resolveRound(
     status: p.status,
     isHost: p.isHost,
   }));
-
-  // Return winner player IDs (as strings)
-  const winnerPlayerIds = (
-    await sql`
-    SELECT room_player_id FROM submissions
-    WHERE id = ANY(${winningSubmissionIds})
-  `
-  ).map((row) => row.room_player_id);
 
   return { winners: winnerPlayerIds, players, isGameOver };
 }

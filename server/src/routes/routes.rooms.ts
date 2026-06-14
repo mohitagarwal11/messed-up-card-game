@@ -8,7 +8,9 @@ import {
   joinRoom,
   leaveRoom,
   getGameState,
+  resetRoom,
 } from '../db/room';
+import { io } from '../index';
 
 const router = Router();
 
@@ -110,7 +112,7 @@ router.post('/:code/join', async (req, res) => {
     });
   }
 });
-
+[]
 // get lobby details route
 router.get('/:code/lobby', async (req, res) => {
   try {
@@ -141,11 +143,25 @@ router.post('/:code/leave', async (req, res) => {
     return res.status(400).json({ message: 'playerId is required' });
   }
   try {
-    await leaveRoom(req.params.code, playerId);
-    res.status(200).json({ ok: true });
+    const { wasReset } = await leaveRoom(req.params.code, playerId);
+    if (wasReset) {
+      io.to(req.params.code).emit('room:reset');
+    }
+    res.status(200).json({ ok: true, wasReset });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Failed to leave room.' });
+  }
+});
+
+// reset room route
+router.post('/:code/reset', async (req, res) => {
+  try {
+    await resetRoom(req.params.code);
+    res.status(200).json({ ok: true });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Failed to reset room.' });
   }
 });
 
