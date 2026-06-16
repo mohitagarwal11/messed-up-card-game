@@ -10,27 +10,25 @@ import RoomPage from './pages/RoomPage';
 export default function App() {
   return (
     <Routes>
-      <Route path="/" element={<LandingPage />} />
-      <Route path="/lobby" element={<LobbyPage />} />
-
-      {/* <Route
-        path="/lobby"
+      <Route
+        path="/"
         element={
-          <SubmittingPhase
-            blackCard={{ text: "What's the worst thing to say at a funeral?", pick: 1 }}
-            hand={[
-              { id: 1, color: 'white', text: 'A surprise party', pick: 1 },
-              { id: 2, color: 'white', text: 'My feelings', pick: 1 },
-              { id: 3, color: 'white', text: 'Nothing, forever', pick: 1 },
-            ]}
-            selectedCardId={null}
-            onSelectCard={() => {}}
-            onSubmit={() => {}}
-            timeLeft={20}
-            hasSubmitted={false}
-            roundNumber={2}
-            totalRounds={10}
-          />
+          <LandingPage />
+          // <SubmittingPhase
+          //   blackCard={{ text: "What's the worst thing to say at a funeral?", pick: 1 }}
+          //   hand={[
+          //     { id: 1, color: 'white', text: 'A surprise party', pick: 1 },
+          //     { id: 2, color: 'white', text: 'My feelings', pick: 1 },
+          //     { id: 3, color: 'white', text: 'Nothing, forever', pick: 1 },
+          //   ]}
+          //   selectedCardId={null}
+          //   onSelectCard={() => {}}
+          //   onSubmit={() => {}}
+          //   timeLeft={20}
+          //   hasSubmitted={false}
+          //   roundNumber={2}
+          //   totalRounds={10}
+          // />
 
           // <ResultsPhase
           //   blackCard={{ text: "What's the worst thing to say at a funeral?", pick: 1 }}
@@ -65,6 +63,10 @@ export default function App() {
           //   }}
           //   roundNumber={2}
           //   totalRounds={10}
+          //   onLeave={() => {}}
+          //   onBackToLobby={() => {}}
+          //   isHost={false}
+          //   isGameOver={false}
           // />
 
           // <VotingPhase
@@ -97,9 +99,11 @@ export default function App() {
           //   playerId="dev-player-id"
           //   roundNumber={2}
           //   totalRounds={10}
-          // />
+          // />\
         }
-      /> */}
+      />
+
+      <Route path="/lobby" element={<LobbyPage />} />
 
       <Route path="/lobby/:code" element={<RoomPage />} />
       <Route path="/game/:code" element={<GamePage />} />
