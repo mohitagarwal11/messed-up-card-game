@@ -24,7 +24,7 @@ export default function App() {
           //   selectedCardId={null}
           //   onSelectCard={() => {}}
           //   onSubmit={() => {}}
-          //   timeLeft={20}
+          //   timeLeft={30000}
           //   hasSubmitted={false}
           //   roundNumber={2}
           //   totalRounds={10}
@@ -64,9 +64,6 @@ export default function App() {
           //   roundNumber={2}
           //   totalRounds={10}
           //   onLeave={() => {}}
-          //   onBackToLobby={() => {}}
-          //   isHost={false}
-          //   isGameOver={false}
           // />
 
           // <VotingPhase
@@ -99,7 +96,7 @@ export default function App() {
           //   playerId="dev-player-id"
           //   roundNumber={2}
           //   totalRounds={10}
-          // />\
+          // />
         }
       />
 
