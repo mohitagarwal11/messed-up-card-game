@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { createRoom, getPublicRooms, getRoomByCode, joinRoom } from '../api/rooms';
 import { LetterAvatar } from '../components/LetterAvatar';
-// import { Room } from '../../../shared/types/index';
 
 type RoomRow = {
   id: string;
@@ -54,6 +53,7 @@ export default function LobbyPage() {
         maxPlayers: Number(maxPlayers),
         totalRounds: Number(totalRounds),
         playerName: guestUser!.name,
+        hostId: guestUser!.id,
       });
       localStorage.setItem('playerId', player.id);
       navigate(`/lobby/${room.code}`);
@@ -124,6 +124,8 @@ export default function LobbyPage() {
 
       <main className="relative z-10 flex h-[calc(100vh-100px)] flex-col xl:flex-row">
         <aside className="flex w-full flex-col gap-5 border-t-4 border-primary border-r-2 bg-surface-container-lowest px-5 py-5 xl:w-[30%] xl:border-l-0 xl:border-t-0 xl:px-6 xl:py-6">
+          {error && <p className="font-mono-ui text-xs uppercase text-error">{error}</p>}
+
           {/* create custom room */}
           <section className="space-y-4">
             <h2 className="font-display text-[clamp(1.5rem,2vw,2.2rem)] uppercase leading-none text-primary">

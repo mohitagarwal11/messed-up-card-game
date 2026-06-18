@@ -5,4 +5,21 @@ const socket: Socket<ServerToClientEvents, ClientToServerEvents> = io('http://lo
   autoConnect: false
 })
 
+export function ensureSocketConnected() {
+  if (!socket.connected) {
+    socket.connect()
+  }
+}
+
+export function joinSocketRoom(roomCode: string, playerId: string) {
+  ensureSocketConnected()
+  socket.emit('room:join', roomCode, playerId)
+}
+
+export function leaveSocketRoom(roomCode: string) {
+  if (socket.connected) {
+    socket.emit('room:leave', roomCode)
+  }
+}
+
 export default socket

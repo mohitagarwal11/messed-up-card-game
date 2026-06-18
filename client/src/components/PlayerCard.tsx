@@ -3,7 +3,6 @@ import { LetterAvatar } from './LetterAvatar';
 
 export function PlayerCard({ player }: { player: Player }) {
   const isDisconnected = player.status === 'disconnected';
-  console.log(player.isHost);
 
   return (
     <article

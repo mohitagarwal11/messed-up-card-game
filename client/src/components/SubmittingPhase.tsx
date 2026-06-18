@@ -1,7 +1,9 @@
+import { useState, useEffect } from 'react';
 import { BlackCard } from './BlackCard';
 import { GameHeader } from './GameHeader';
 import { WhiteCard } from './WhiteCard';
 import type { Card } from '../../../shared/types';
+import { SUBMIT_DURATION_MS } from '../../../shared/constants';
 
 interface SubmittingPhaseProps {
   blackCard: Pick<Card, 'text' | 'pick'>;
@@ -9,8 +11,6 @@ interface SubmittingPhaseProps {
   selectedCardId: number | null;
   onSelectCard: (id: number) => void;
   onSubmit: () => void;
-  timeLeft: number;
-  hasSubmitted: boolean;
   roundNumber: number;
   totalRounds: number;
 }
@@ -21,18 +21,28 @@ export default function SubmittingPhase({
   selectedCardId,
   onSelectCard,
   onSubmit,
-  timeLeft,
-  hasSubmitted,
   roundNumber,
   totalRounds,
 }: SubmittingPhaseProps) {
-  const progress = (timeLeft / 30) * 100;
+  const [countdown, setCountdown] = useState(SUBMIT_DURATION_MS / 1000);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCountdown((prev) => {
+        if (prev <= 1) {
+          clearInterval(interval);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(interval);
+  }, []);
 
   return (
     <div className="flex flex-col h-full bg-[var(--bg)] text-[var(--text)]">
       <GameHeader
         text="submit your best answer"
-        progress={progress}
         roundNumber={roundNumber}
         totalRounds={totalRounds}
       />
@@ -42,31 +52,26 @@ export default function SubmittingPhase({
         <BlackCard text={blackCard.text} pick={blackCard.pick} />
       </div>
 
+      {/* Auto-advance countdown */}
+      <div className="text-center font-mono-ui text-sm uppercase p-5">SUBMIT IN {countdown}s</div>
+
       {/* Hand or waiting message */}
-      <div className="flex flex-row items-center justify-center gap-3 pt-5">
-        {hasSubmitted ? (
-          <p className="font-mono-ui uppercase opacity-60">WAITING FOR OTHER PLAYERS...</p>
-        ) : (
-          <>
-            <div className="flex row justify-center gap-3 flex-wrap">
-              {hand.map((card) => (
-                <WhiteCard
-                  key={card.id}
-                  text={card.text}
-                  selected={selectedCardId === card.id}
-                  onClick={() => onSelectCard(card.id)}
-                  style={{
-                    transform: selectedCardId === card.id ? 'translateY(-20px)' : undefined,
-                  }}
-                />
-              ))}
-            </div>
-          </>
-        )}
+      <div className="flex flex-row items-center justify-center gap-3 flex-wrap">
+        {hand.map((card) => (
+          <WhiteCard
+            key={card.id}
+            text={card.text}
+            selected={selectedCardId === card.id}
+            onClick={() => onSelectCard(card.id)}
+            style={{
+              transform: selectedCardId === card.id ? 'translateY(-20px)' : undefined,
+            }}
+          />
+        ))}
       </div>
 
       {/* Submit button */}
-      <div className="flex justify-center items-center pt-5 px-4 pb-4 gap-4">
+      <div className="flex justify-center items-center px-4 pb-4 gap-4">
         <button
           onClick={onSubmit}
           disabled={selectedCardId === null}

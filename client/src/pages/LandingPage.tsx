@@ -1,10 +1,9 @@
-import { useRef, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { createGuestUser } from '../api/users';
 
 export default function LandingPage() {
   const navigate = useNavigate();
-  const heroRef = useRef<HTMLElement | null>(null);
   const [step, setStep] = useState<'home' | 'username'>('home');
   const [username, setUsername] = useState('');
   const [loading, setLoading] = useState(false);
@@ -31,8 +30,7 @@ export default function LandingPage() {
       const user = await createGuestUser(username.trim());
       localStorage.setItem('guestUser', JSON.stringify(user));
       navigate('/lobby');
-    } catch (e) {
-      console.log(e);
+    } catch {
       setError('Failed to create guest user');
     } finally {
       setLoading(false);
@@ -41,10 +39,7 @@ export default function LandingPage() {
 
   return (
     <div className="page-shell flex items-center justify-center px-6">
-      <main
-        ref={heroRef}
-        className="relative z-10 flex w-full max-w-2xl flex-col items-center text-center transition-transform duration-150 will-change-transform"
-      >
+      <main className="relative z-10 flex w-full max-w-2xl flex-col items-center text-center transition-transform duration-150 will-change-transform">
         <h1 className="font-display text-[clamp(3rem,6vw,6rem)] uppercase leading-[0.95] tracking-[-0.04em] text-primary-container">
           Messed Up Cards
         </h1>
@@ -104,9 +99,6 @@ export default function LandingPage() {
         </p>
         <p className="mt-4 font-mono-ui text-xs uppercase tracking-[0.25em] text-secondary/60">
           It is carefully engineered to offend everyone equally.
-        </p>
-        <p className="mt-6 font-mono-ui text-xs uppercase tracking-[0.25em] text-secondary/60">
-          - made by Mohit Agarwal
         </p>
       </main>
     </div>

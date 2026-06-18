@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { getLobbyState, leaveRoom } from '../api/rooms';
 import type { Room } from '../../../shared/types';
 import { PlayerCard } from '../components/PlayerCard';
-import socket from '../socket/index';
+import socket, { joinSocketRoom, leaveSocketRoom } from '../socket/index';
 
 export default function RoomPage() {
   const leavingRef = useRef(false);
@@ -42,13 +42,11 @@ export default function RoomPage() {
     };
   }, [code]);
 
-  //socket events handling
   useEffect(() => {
-    socket.connect();
-    socket.emit('room:join', {
-      roomCode: code!,
-      playerName: JSON.parse(localStorage.getItem('guestUser') ?? 'null')?.name ?? '',
-    });
+    const playerId = localStorage.getItem('playerId');
+    if (playerId && code) {
+      joinSocketRoom(code, playerId);
+    }
 
     socket.on('room:state', (room) => {
       if (room.status === 'in_progress') {
@@ -59,7 +57,6 @@ export default function RoomPage() {
 
     return () => {
       socket.off('room:state');
-      socket.disconnect();
     };
   }, [code, navigate]);
 
@@ -67,6 +64,7 @@ export default function RoomPage() {
     const playerId = localStorage.getItem('playerId');
     if (!playerId || !code) return;
     leavingRef.current = true;
+    leaveSocketRoom(code);
     await leaveRoom(code, playerId);
     navigate('/lobby');
   };
@@ -87,7 +85,6 @@ export default function RoomPage() {
   }
 
   const activePlayers = room.players.filter((p) => p.status === 'active');
-  // console.log(activePlayers);
   const hostName = room.players.find((p) => p.isHost)?.name ?? '—';
   const playerId = localStorage.getItem('playerId');
   const isHost = room.players.find((p) => p.isHost)?.id === playerId;
@@ -203,10 +200,7 @@ export default function RoomPage() {
                 disabled={activePlayers.length < 3 || starting}
                 onClick={() => {
                   setStarting(true);
-                  socket.emit('game:start', {
-                    roomCode: code!,
-                    playerId: localStorage.getItem('playerId') ?? '',
-                  });
+                  socket.emit('game:start', code!, localStorage.getItem('playerId') ?? '');
                 }}
                 className={`w-full py-3 font-display text-2xl uppercase ${
                   activePlayers.length < 3 || starting

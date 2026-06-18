@@ -8,18 +8,24 @@ import type {
   ClientToServerEvents,
   Room,
   Submission,
+  RoundResult,
 } from '../../shared/types/index';
-import sql from './db/client';
+import { setRoomStatus } from './db/room';
+import { pickRandomWhiteCard } from './data/cards';
 import {
-  getLobbyState,
-  startGame,
-  submitCard,
-  castVote,
-  resolveRound,
-  deleteRoom,
-} from './db/room';
+  roomCache,
+  getRoomCacheEntry,
+  getRoomFromCache,
+  cacheSubmitCard,
+  cacheCastVote,
+  cacheResolveRound,
+  deleteRoomCacheEntry,
+  removeStaleSocketMapping,
+  startGameInCache,
+} from './cache/roomCache';
 import roomRouter from './routes/routes.rooms';
 import usersRouter from './routes/routes.users';
+import { RESULTS_DURATION_MS, SUBMIT_DURATION_MS, VOTE_DURATION_MS } from '../../shared/constants';
 
 const app = express();
 const httpServer = createServer(app);
@@ -29,7 +35,6 @@ const io = new Server<ClientToServerEvents, ServerToClientEvents>(httpServer, {
 });
 export { io };
 
-// Map of room code to active timeout for submission/voting phases
 const roomTimers = new Map<string, NodeJS.Timeout>();
 
 function clearRoomTimer(roomCode: string) {
@@ -37,6 +42,29 @@ function clearRoomTimer(roomCode: string) {
   if (t) {
     clearTimeout(t);
     roomTimers.delete(roomCode);
+  }
+}
+
+async function finishRound(roomCode: string, result: RoundResult) {
+  io.to(roomCode).emit('round:end', result);
+
+  if (result.isGameOver) {
+    const endTimer = setTimeout(async () => {
+      io.to(roomCode).emit('game:end', result.players);
+      deleteRoomCacheEntry(roomCode);
+      clearRoomTimer(roomCode);
+      await setRoomStatus(roomCode, 'finished');
+    }, 10_000);
+    roomTimers.set(roomCode, endTimer);
+  } else {
+    const nextRoundTimer = setTimeout(async () => {
+      if (!roomCache.has(roomCode)) return;
+      const updatedEntry = getRoomCacheEntry(roomCode);
+      if (!updatedEntry.round) return;
+      io.to(roomCode).emit('round:start', updatedEntry.round);
+      await startSubmitTimer(roomCode, updatedEntry.round.id);
+    }, RESULTS_DURATION_MS);
+    roomTimers.set(roomCode, nextRoundTimer);
   }
 }
 
@@ -48,102 +76,90 @@ app.use('/users', usersRouter);
 
 app.get('/health', (_req, res) => res.json({ ok: true }));
 
-async function startVotePhase(roomCode: string, roundId: string) {
-  const rawSubs = await sql`
-    SELECT s.id, s.room_player_id AS "playerId", c.id AS "cardId", c.text, c.pick
-    FROM submissions s
-    JOIN cards c ON c.id = s.card_id
-    WHERE s.round_id = ${roundId}
-  `;
-  const submissions: Submission[] = rawSubs.map((row: any) => ({
-    id: row.id,
-    playerId: row.playerId,
-    card: { id: row.cardId, color: 'white', text: row.text, pick: row.pick },
-    isAutoPicked: false,
-  }));
+async function startVotePhase(roomCode: string) {
+  const entry = getRoomCacheEntry(roomCode);
+  if (!entry.round) return;
+  entry.round.phase = 'voting';
+  const submissions: Submission[] = entry.round.submissions;
   io.to(roomCode).emit('phase:vote', submissions);
 
   const voteTimer = setTimeout(async () => {
-    const votedRows = await sql`SELECT voter_id FROM votes WHERE round_id = ${roundId}`;
-    const votedIds = votedRows.map((r: any) => r.voter_id);
-    const activePlayers = await sql`
-      SELECT id FROM room_players
-      WHERE room_id = (SELECT id FROM rooms WHERE code = ${roomCode})
-        AND status = 'active'
-    `;
-    const allSubs =
-      await sql`SELECT id, room_player_id FROM submissions WHERE round_id = ${roundId}`;
-    const unvoted = activePlayers.filter((p: any) => !votedIds.includes(p.id));
-    for (const p of unvoted) {
-      const possible = allSubs.filter((s: any) => s.room_player_id !== p.id);
+    const votedIds = entry.votes.map((v) => v.voterId);
+    const activePlayerIds = entry.room.players
+      .filter((player) => player.status === 'active')
+      .map((player) => player.id);
+    const unvoted = activePlayerIds.filter((id) => !votedIds.includes(id));
+
+    for (const playerId of unvoted) {
+      if (!entry.round) return;
+      const possible = entry.round.submissions.filter((s) => s.playerId !== playerId);
       if (possible.length === 0) continue;
       const randomSub = possible[Math.floor(Math.random() * possible.length)];
-      await castVote(roundId, p.id, randomSub.id);
+      cacheCastVote(roomCode, playerId, randomSub.id);
     }
-    const result = await resolveRound(roomCode, roundId);
-    io.to(roomCode).emit('round:end', result);
+
+    const result = cacheResolveRound(roomCode);
     clearRoomTimer(roomCode);
-  }, 30_000);
+    await finishRound(roomCode, result);
+  }, VOTE_DURATION_MS);
   roomTimers.set(roomCode, voteTimer);
 }
 
 async function startSubmitTimer(roomCode: string, roundId: string) {
   const submitTimer = setTimeout(async () => {
-    const submittedRows =
-      await sql`SELECT room_player_id FROM submissions WHERE round_id = ${roundId}`;
-    const submittedIds = submittedRows.map((r: any) => r.room_player_id);
-    const activePlayers = await sql`
-      SELECT id FROM room_players
-      WHERE room_id = (SELECT id FROM rooms WHERE code = ${roomCode})
-        AND status = 'active'
-    `;
-    const unsubmitted = activePlayers.filter((p: any) => !submittedIds.includes(p.id));
-    for (const p of unsubmitted) {
-      const [hand] = await sql`
-        SELECT card_id FROM player_hands
-        WHERE room_player_id = ${p.id} AND is_played = false
-        ORDER BY RANDOM()
-        LIMIT 1
-      `;
-      if (hand) await submitCard(roundId, p.id, hand.card_id);
+    const entry = getRoomCacheEntry(roomCode);
+    if (!entry.round || entry.round.id !== roundId) return;
+    const submittedIds = entry.round.submissions.map((s) => s.playerId);
+    const activeIds = entry.room.players
+      .filter((player) => player.status === 'active')
+      .map((player) => player.id);
+    const unsubmitted = activeIds.filter((id) => !submittedIds.includes(id));
+
+    for (const playerId of unsubmitted) {
+      let card = entry.hands[playerId]?.shift();
+      if (!card) {
+        card = pickRandomWhiteCard();
+      }
+      if (card) {
+        cacheSubmitCard(roomCode, roundId, playerId, card.id, card, true);
+      }
     }
-    await startVotePhase(roomCode, roundId);
-  }, 30_000);
+    await startVotePhase(roomCode);
+  }, SUBMIT_DURATION_MS);
   roomTimers.set(roomCode, submitTimer);
 }
 
 io.on('connection', (socket) => {
-  console.log('Client connected:', socket.id);
-  // Handle client request to join a room
-  socket.on('room:join', async (payload: { roomCode: string; playerName: string }) => {
-    const { roomCode } = payload;
+  // console.log('Client connected:', socket.id);
+  socket.on('room:join', async (roomCode: string, playerId: string) => {
     try {
       socket.join(roomCode);
+      if (roomCache.has(roomCode)) {
+        const entry = getRoomCacheEntry(roomCode);
+        entry.sockets[playerId] = socket.id;
+      }
     } catch (err) {
       console.error('joinRoom error:', err);
       socket.emit('error', 'Failed to join room');
     }
   });
 
-  // Handle client request to start the game
-  socket.on('game:start', async (payload: { roomCode: string; playerId: string }) => {
-    const { roomCode, playerId } = payload;
+  socket.on('room:leave', (roomCode: string) => {
+    socket.leave(roomCode);
+  });
+
+  socket.on('game:start', async (roomCode: string, playerId: string) => {
     try {
-      const [earliest] = await sql`
-        SELECT rp.id FROM room_players rp
-        JOIN rooms r ON r.id = rp.room_id
-        WHERE r.code = ${roomCode} AND rp.status = 'active'
-        ORDER BY rp.joined_at ASC
-        LIMIT 1
-      `;
-      if (!earliest || earliest.id !== playerId) {
+      const entry = getRoomCacheEntry(roomCode);
+      const host = entry.room.players.find((p) => p.isHost);
+      if (!host || host.id !== playerId) {
         socket.emit('error', 'Only the host can start the game');
         return;
       }
-      await sql`UPDATE rooms SET status = 'in_progress' WHERE code = ${roomCode}`;
-      const { roundId } = await startGame(roomCode);
-      const roomData = await getLobbyState(roomCode);
-      const room = roomData as unknown as Room;
+
+      await setRoomStatus(roomCode, 'in_progress');
+      const { roundId } = startGameInCache(roomCode);
+      const room = getRoomFromCache(roomCode) as Room;
       io.to(roomCode).emit('room:state', room);
       await startSubmitTimer(roomCode, roundId);
     } catch (err) {
@@ -152,25 +168,35 @@ io.on('connection', (socket) => {
     }
   });
 
-  // Handle card submission from a player
-  socket.on('card:submit', async (payload) => {
-    const { roomCode, roundId, cardId, playerId } = payload;
+  socket.on('card:submit', async (roomCode: string, cardId: number, playerId: string) => {
     try {
-      const submissionCount = await submitCard(roundId, playerId, cardId);
-      const [{ count: activeCount }] = await sql`
-      SELECT COUNT(*)::int AS count
-      FROM room_players rp
-      JOIN rooms r ON rp.room_id = r.id
-      WHERE r.code = ${roomCode} AND rp.status = 'active'
-    `;
+      const entry = getRoomCacheEntry(roomCode);
+      if (!entry.round || entry.round.phase !== 'submitting') {
+        socket.emit('error', 'No active round');
+        return;
+      }
+      const roundId = entry.round.id;
+      const alreadySubmitted = entry.round.submissions.some(
+        (submission) => submission.playerId === playerId,
+      );
+      if (alreadySubmitted) {
+        socket.emit('error', 'Player already submitted this round');
+        return;
+      }
+      const card = entry.hands[playerId]?.find((c) => Number(c.id) === Number(cardId));
+      if (!card) {
+        socket.emit('error', 'Card not found in hand');
+        return;
+      }
+      cacheSubmitCard(roomCode, roundId, playerId, cardId, card);
+      const activeCount = entry.room.players.filter((player) => player.status === 'active').length;
+      const submissionCount = entry.round.submissions.length;
 
       if (submissionCount >= activeCount) {
         clearRoomTimer(roomCode);
-        await startVotePhase(roomCode, roundId);
-      } else {
-        if (!roomTimers.has(roomCode)) {
-          await startSubmitTimer(roomCode, roundId);
-        }
+        await startVotePhase(roomCode);
+      } else if (!roomTimers.has(roomCode)) {
+        await startSubmitTimer(roomCode, roundId);
       }
     } catch (err) {
       console.error('cardSubmit error:', err);
@@ -178,74 +204,48 @@ io.on('connection', (socket) => {
     }
   });
 
-  socket.on(
-    'vote:cast',
-    async (payload: {
-      roomCode: string;
-      roundId: string;
-      submissionId: string;
-      playerId: string;
-    }) => {
-      const { roomCode, roundId, submissionId, playerId } = payload;
-      try {
-        await castVote(roundId, playerId, submissionId);
-        const [{ count: activeCount }] = await sql`
-         SELECT COUNT(*)::int AS count
-         FROM room_players rp
-         JOIN rooms r ON rp.room_id = r.id
-         WHERE r.code = ${roomCode} AND rp.status = 'active'
-       `;
-        const [{ count: voteCount }] = await sql`
-         SELECT COUNT(*)::int AS count FROM votes WHERE round_id = ${roundId}
-       `;
-        if (voteCount >= activeCount) {
-          clearRoomTimer(roomCode);
-          const result = await resolveRound(roomCode, roundId);
-          io.to(roomCode).emit('round:end', result);
-
-          if (result.isGameOver) {
-            setTimeout(async () => {
-              io.to(roomCode).emit('game:end', result.players);
-              await deleteRoom(roomCode);
-            }, 30_000);
-          } else {
-            setTimeout(async () => {
-              const [room] =
-                await sql`SELECT id, current_round FROM rooms WHERE code = ${roomCode}`;
-              const [blackCard] =
-                await sql`SELECT id, text, pick FROM cards WHERE color = 'black' ORDER BY RANDOM() LIMIT 1`;
-              const newRoundNumber = room.current_round;
-              const [round] = await sql`
-                INSERT INTO rounds (room_id, round_number, black_card_id, phase)
-                VALUES (${room.id}, ${newRoundNumber}, ${blackCard.id}, 'submitting')
-                RETURNING id
-                `;
-              io.to(roomCode).emit('round:start', {
-                id: round.id,
-                roundNumber: newRoundNumber,
-                blackCard: {
-                  id: blackCard.id,
-                  color: 'black',
-                  text: blackCard.text,
-                  pick: blackCard.pick,
-                },
-                phase: 'submitting',
-                phaseEndsAt: '',
-                submissions: [],
-                winners: [],
-              });
-              await startSubmitTimer(roomCode, round.id);
-            }, 30_000);
-          }
-        }
-      } catch (err) {
-        console.error('voteCast error:', err);
-        socket.emit('error', 'Failed to cast vote');
+  socket.on('vote:cast', async (roomCode: string, submissionId: string, playerId: string) => {
+    try {
+      const entry = getRoomCacheEntry(roomCode);
+      if (!entry.round || entry.round.phase !== 'voting') {
+        socket.emit('error', 'Voting is not active');
+        return;
       }
-    },
-  );
-  socket.on('disconnect', () => console.log('Client disconnected:', socket.id));
+      const alreadyVoted = entry.votes.some((vote) => vote.voterId === playerId);
+      if (alreadyVoted) {
+        socket.emit('error', 'Player already voted this round');
+        return;
+      }
+      const submission = entry.round.submissions.find((item) => item.id === submissionId);
+      if (!submission) {
+        socket.emit('error', 'Submission not found');
+        return;
+      }
+      if (submission.playerId === playerId) {
+        socket.emit('error', 'Players cannot vote for themselves');
+        return;
+      }
+      cacheCastVote(roomCode, playerId, submissionId);
+      const activeCount = entry.room.players.filter((player) => player.status === 'active').length;
+      const voteCount = entry.votes.length;
+      if (voteCount >= activeCount) {
+        clearRoomTimer(roomCode);
+        const result = cacheResolveRound(roomCode);
+        await finishRound(roomCode, result);
+      }
+    } catch (err) {
+      console.error('voteCast error:', err);
+      socket.emit('error', 'Failed to cast vote');
+    }
+  });
+
+  socket.on('disconnect', () => {
+    // console.log('Client disconnected:', socket.id);
+    removeStaleSocketMapping(socket.id);
+  });
 });
 
 const PORT = process.env.PORT || 3001;
-httpServer.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+httpServer.listen(PORT, () => {
+  // console.log(`Server running on port ${PORT}`);
+});

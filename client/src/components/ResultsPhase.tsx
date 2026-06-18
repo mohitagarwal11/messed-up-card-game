@@ -3,6 +3,7 @@ import { BlackCard } from './BlackCard';
 import { WhiteCard } from './WhiteCard';
 import { GameHeader } from './GameHeader';
 import { useEffect, useState } from 'react';
+import { RESULTS_DURATION_MS } from '../../../shared/constants';
 
 interface ResultsPhaseProps {
   roundResult: RoundResult;
@@ -11,8 +12,6 @@ interface ResultsPhaseProps {
   roundNumber: number;
   totalRounds: number;
   onLeave: () => void;
-  onBackToLobby: () => void;
-  isHost: boolean;
 }
 
 export default function ResultsPhase({
@@ -22,10 +21,8 @@ export default function ResultsPhase({
   roundNumber,
   totalRounds,
   onLeave,
-  onBackToLobby,
-  isHost,
 }: ResultsPhaseProps) {
-  const [countdown, setCountdown] = useState(30);
+  const [countdown, setCountdown] = useState(RESULTS_DURATION_MS / 1000);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -40,8 +37,6 @@ export default function ResultsPhase({
     return () => clearInterval(interval);
   }, []);
 
-  const progress = (countdown / 30) * 100;
-
   const winningSubmission = submissions.find((s) => roundResult.winners.includes(s.playerId));
   const winnerPlayer = roundResult.players.find((p) => p.id === winningSubmission?.playerId);
   const winnerName = winnerPlayer?.name ?? '';
@@ -50,12 +45,7 @@ export default function ResultsPhase({
 
   return (
     <div className="flex flex-col h-full bg-[var(--bg)] text-[var(--text)] overflow-y-auto">
-      <GameHeader
-        text="the winning combo"
-        progress={progress}
-        roundNumber={roundNumber}
-        totalRounds={totalRounds}
-      />
+      <GameHeader text="the winning combo" roundNumber={roundNumber} totalRounds={totalRounds} />
 
       {/* Winning pair */}
       <div className="flex justify-center items-center gap-8 p-5">
@@ -93,22 +83,18 @@ export default function ResultsPhase({
       {/* Auto-advance countdown */}
       <div className="text-center py-4 font-mono-ui text-sm uppercase">
         {roundResult.isGameOver ? (
-          <span className="text-[var(--accent)] text-2xl font-display">GAME OVER</span>
+          <>
+            <span className="text-[var(--accent)] text-2xl font-display">GAME OVER</span>
+            <span className="text-[var(--accent)] text-2xl font-display">
+              The winner is: ${sortedPlayers[0].name}
+            </span>
+          </>
         ) : (
           `NEXT ROUND IN ${countdown}s`
         )}
       </div>
 
       <div className="flex justify-center items-center gap-6 mb-10">
-        {isHost && (
-          <button
-            type="button"
-            onClick={onBackToLobby}
-            className="w-full max-w-sm mt-4 font-display text-2xl uppercase py-4 neo-shadow active-press transition-all bg-[var(--accent)] text-black"
-          >
-            Back to Lobby
-          </button>
-        )}
         <button
           type="button"
           onClick={onLeave}
