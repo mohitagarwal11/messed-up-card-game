@@ -3,9 +3,9 @@ import LandingPage from './pages/LandingPage';
 import LobbyPage from './pages/LobbyPage';
 import GamePage from './pages/GamePage';
 import RoomPage from './pages/RoomPage';
+// import ResultsPhase from './components/ResultsPhase';
 // import SubmittingPhase from './components/SubmittingPhase';
 // import VotingPhase from './components/VotingPhase';
-// import ResultsPhase from './components/ResultsPhase';
 
 export default function App() {
   return (
@@ -24,8 +24,6 @@ export default function App() {
           //   selectedCardId={null}
           //   onSelectCard={() => {}}
           //   onSubmit={() => {}}
-          //   timeLeft={30000}
-          //   hasSubmitted={false}
           //   roundNumber={2}
           //   totalRounds={10}
           // />
@@ -91,7 +89,6 @@ export default function App() {
           //   selectedSubmissionId={null}
           //   onSelectSubmission={() => {}}
           //   onVote={() => {}}
-          //   timeLeft={20}
           //   hasVoted={false}
           //   playerId="dev-player-id"
           //   roundNumber={2}

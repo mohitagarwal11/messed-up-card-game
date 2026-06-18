@@ -6,6 +6,7 @@ export async function createRoom(payload: {
   maxPlayers: number;
   totalRounds: number;
   playerName: string;
+  hostId: string;
 }) {
   const response = await client.post('/rooms', payload);
   return response.data;

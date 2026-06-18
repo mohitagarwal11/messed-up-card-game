@@ -11,7 +11,6 @@ interface VotingPhaseProps {
   selectedSubmissionId: string | null;
   onSelectSubmission: (id: string) => void;
   onVote: () => void;
-  timeLeft: number;
   hasVoted: boolean;
   playerId: string;
   roundNumber: number;

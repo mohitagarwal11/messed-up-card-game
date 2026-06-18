@@ -11,8 +11,6 @@ interface SubmittingPhaseProps {
   selectedCardId: number | null;
   onSelectCard: (id: number) => void;
   onSubmit: () => void;
-  timeLeft: number;
-  hasSubmitted: boolean;
   roundNumber: number;
   totalRounds: number;
 }
@@ -23,7 +21,6 @@ export default function SubmittingPhase({
   selectedCardId,
   onSelectCard,
   onSubmit,
-  hasSubmitted,
   roundNumber,
   totalRounds,
 }: SubmittingPhaseProps) {
@@ -55,31 +52,23 @@ export default function SubmittingPhase({
         <BlackCard text={blackCard.text} pick={blackCard.pick} />
       </div>
 
-      {/* Hand or waiting message */}
-      <div className="flex flex-row items-center justify-center gap-3 pt-5">
-        {hasSubmitted ? (
-          <p className="font-mono-ui uppercase opacity-60">WAITING FOR OTHER PLAYERS...</p>
-        ) : (
-          <>
-            <div className="flex row justify-center gap-3 flex-wrap">
-              {hand.map((card) => (
-                <WhiteCard
-                  key={card.id}
-                  text={card.text}
-                  selected={selectedCardId === card.id}
-                  onClick={() => onSelectCard(card.id)}
-                  style={{
-                    transform: selectedCardId === card.id ? 'translateY(-20px)' : undefined,
-                  }}
-                />
-              ))}
-            </div>
-          </>
-        )}
-      </div>
-
       {/* Auto-advance countdown */}
-      <div className="text-center py-4 font-mono-ui text-sm uppercase">SUBMIT IN {countdown}s</div>
+      <div className="text-center font-mono-ui text-sm uppercase p-5">SUBMIT IN {countdown}s</div>
+
+      {/* Hand or waiting message */}
+      <div className="flex flex-row items-center justify-center gap-3 flex-wrap">
+        {hand.map((card) => (
+          <WhiteCard
+            key={card.id}
+            text={card.text}
+            selected={selectedCardId === card.id}
+            onClick={() => onSelectCard(card.id)}
+            style={{
+              transform: selectedCardId === card.id ? 'translateY(-20px)' : undefined,
+            }}
+          />
+        ))}
+      </div>
 
       {/* Submit button */}
       <div className="flex justify-center items-center px-4 pb-4 gap-4">

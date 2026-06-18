@@ -83,7 +83,12 @@ export default function ResultsPhase({
       {/* Auto-advance countdown */}
       <div className="text-center py-4 font-mono-ui text-sm uppercase">
         {roundResult.isGameOver ? (
-          <span className="text-[var(--accent)] text-2xl font-display">GAME OVER</span>
+          <>
+            <span className="text-[var(--accent)] text-2xl font-display">GAME OVER</span>
+            <span className="text-[var(--accent)] text-2xl font-display">
+              The winner is: ${sortedPlayers[0].name}
+            </span>
+          </>
         ) : (
           `NEXT ROUND IN ${countdown}s`
         )}
