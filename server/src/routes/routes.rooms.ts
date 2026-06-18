@@ -1,28 +1,33 @@
 import { Router } from 'express';
+import { createRoom, getRoomByCode } from '../db/room';
 import {
-  createRoom,
-  getLobbyState,
-  getPublicRooms,
-  getRoomByCode,
-  getRoomPlayers,
-  joinRoom,
-  leaveRoom,
-  getGameState,
-  resetRoom,
-} from '../db/room';
+  initRoomCache,
+  joinRoomCache,
+  leaveRoomCache,
+  getLobbyStateFromCache,
+  getPublicRoomsFromCache,
+  getGameStateFromCache,
+  getRoomFromCache,
+  resetRoomInCache,
+  type DbRoomRow,
+} from '../cache/roomCache';
 import { io } from '../index';
 
 const router = Router();
 
-// create room route
 router.post('/', async (req, res) => {
   try {
-    const { name, isPrivate, maxPlayers, totalRounds, playerName } = req.body;
+    const { name, isPrivate, maxPlayers, totalRounds, playerName, hostId } = req.body;
 
     const trimmedPlayerName = typeof playerName === 'string' ? playerName.trim() : '';
+    const trimmedHostId = typeof hostId === 'string' ? hostId.trim() : '';
 
     if (!trimmedPlayerName) {
       return res.status(400).json({ message: 'playerName is required' });
+    }
+
+    if (!trimmedHostId) {
+      return res.status(400).json({ message: 'hostId is required' });
     }
 
     const room = await createRoom({
@@ -30,41 +35,56 @@ router.post('/', async (req, res) => {
       isPrivate,
       maxPlayers,
       totalRounds,
-      hostId: null,
+      hostId: trimmedHostId,
     });
 
-    const { player } = await joinRoom(room.code, trimmedPlayerName);
+    initRoomCache(room as DbRoomRow, { id: trimmedHostId, name: trimmedPlayerName });
 
-    res.status(201).json({ room, player });
+    const lobby = getLobbyStateFromCache(room.code);
+    const hostPlayer = lobby.players.find((p) => p.isHost)!;
+
+    res.status(201).json({ room: lobby, player: hostPlayer });
   } catch (error) {
-    console.log(error);
+    console.error(error);
     res.status(500).json({
       message: 'Failed to create room.',
     });
   }
 });
 
-// get public rooms route
-router.get('/', async (req, res) => {
+router.get('/', async (_req, res) => {
   try {
-    const rooms = await getPublicRooms();
+    const rooms = getPublicRoomsFromCache();
     res.status(200).json(rooms);
   } catch (error) {
-    console.log(error);
+    console.error(error);
     res.status(500).json({
       message: 'Failed to get public rooms.',
     });
   }
 });
 
-// get room by code route
 router.get('/:code', async (req, res) => {
   try {
-    const room = await getRoomByCode(req.params.code);
+    const cached = getRoomFromCache(req.params.code);
+    if (cached) {
+      return res.status(200).json(cached);
+    }
 
-    res.status(200).json(room);
+    const room = await getRoomByCode(req.params.code);
+    res.status(200).json({
+      ...room,
+      current_round: 0,
+      players: [],
+    });
   } catch (error) {
     console.error(error);
+
+    const message = error instanceof Error ? error.message : 'Failed to get room by code.';
+
+    if (message === 'Room not found') {
+      return res.status(404).json({ message });
+    }
 
     res.status(500).json({
       message: 'Failed to get room by code.',
@@ -72,7 +92,6 @@ router.get('/:code', async (req, res) => {
   }
 });
 
-// join room route
 router.post('/:code/join', async (req, res) => {
   const playerName = typeof req.body?.playerName === 'string' ? req.body.playerName.trim() : '';
 
@@ -83,8 +102,7 @@ router.post('/:code/join', async (req, res) => {
   }
 
   try {
-    const { player, roomId } = await joinRoom(req.params.code, playerName);
-    const players = await getRoomPlayers(roomId);
+    const { player, players } = joinRoomCache(req.params.code, playerName);
 
     res.status(201).json({
       player,
@@ -112,11 +130,10 @@ router.post('/:code/join', async (req, res) => {
     });
   }
 });
-[]
-// get lobby details route
+
 router.get('/:code/lobby', async (req, res) => {
   try {
-    const lobbyState = await getLobbyState(req.params.code);
+    const lobbyState = getLobbyStateFromCache(req.params.code);
 
     res.status(200).json(lobbyState);
   } catch (error) {
@@ -136,14 +153,13 @@ router.get('/:code/lobby', async (req, res) => {
   }
 });
 
-// leave room route
 router.post('/:code/leave', async (req, res) => {
   const playerId = typeof req.body?.playerId === 'string' ? req.body.playerId.trim() : '';
   if (!playerId) {
     return res.status(400).json({ message: 'playerId is required' });
   }
   try {
-    const { wasReset } = await leaveRoom(req.params.code, playerId);
+    const { wasReset } = leaveRoomCache(req.params.code, playerId);
     if (wasReset) {
       io.to(req.params.code).emit('room:reset');
     }
@@ -154,10 +170,9 @@ router.post('/:code/leave', async (req, res) => {
   }
 });
 
-// reset room route
 router.post('/:code/reset', async (req, res) => {
   try {
-    await resetRoom(req.params.code);
+    resetRoomInCache(req.params.code);
     res.status(200).json({ ok: true });
   } catch (error) {
     console.error(error);
@@ -165,22 +180,22 @@ router.post('/:code/reset', async (req, res) => {
   }
 });
 
-// get game state route
 router.get('/:code/game-state', async (req, res) => {
   const playerId = req.query.playerId as string;
   if (!playerId) {
     return res.status(400).json({ message: 'playerId is required' });
   }
   try {
-    const gameState = await getGameState(req.params.code, playerId);
+    const gameState = getGameStateFromCache(req.params.code, playerId);
     return res.status(200).json(gameState);
   } catch (error) {
     console.error(error);
     const message = error instanceof Error ? error.message : 'Failed to get game state.';
-    if (message === 'Room not found' || message === 'Round not found') {
+    if (message === 'Room not found' || message === 'No active round in cache' || message === 'Player not in room') {
       return res.status(404).json({ message });
     }
     return res.status(500).json({ message: 'Failed to get game state.' });
   }
 });
+
 export default router;
