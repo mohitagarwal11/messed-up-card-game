@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { createGuestUser } from '../api/users';
 import { motion } from 'motion/react';
+import CheckPattern from '../components/CheckPattern';
 
 const CARD_AREA = 240 * 160 * 2;
 const MIN_CARD_COUNT = 5;
@@ -165,19 +166,13 @@ export default function LandingPage() {
   return (
     <div className="min-h-screen bg-background flex flex-col items-center justify-center px-6 relative overflow-hidden">
       {/* background check pattern */}
-      <div
-        className="absolute inset-0 pointer-events-none opacity-[0.1]"
-        style={{
-          backgroundImage:
-            'linear-gradient(#ffffff 1px, transparent 1px), linear-gradient(90deg, #ffffff 1px, transparent 1px)',
-          backgroundSize: '60px 60px',
-        }}
-      />
+      <CheckPattern />
+
       {/* background floating card */}
       {cards.map((card, i) => (
         <motion.div
           key={i}
-          className="group absolute flex h-70 w-45 items-end rounded-xl border border-card-foreground p-4 transition-colors duration-200 hover:-translate-y-5 hover:bg-card hover:z-10"
+          className="group absolute flex h-70 w-45 items-end rounded-xl border-2 border-card-foreground p-4 transition-colors duration-300 hover:-translate-y-5 hover:bg-card hover:z-11"
           style={{
             left: card.x,
             top: card.y,
@@ -190,10 +185,10 @@ export default function LandingPage() {
           transition={{
             duration: card.duration,
             repeat: Infinity,
-            ease: 'easeOut',
+            ease: 'easeInOut',
           }}
         >
-          <p className="font-['DM_Mono',monospace] font-semibold text-xs uppercase tracking-[0.18em] text-accent opacity-0 transition-opacity duration-200 group-hover:opacity-100">
+          <p className="font-semibold text-xs uppercase tracking-[0.18em] text-accent opacity-0 transition-opacity duration-300 group-hover:opacity-100">
             {card.text}
           </p>
         </motion.div>
@@ -209,7 +204,6 @@ export default function LandingPage() {
           <h1
             className="text-foreground uppercase tracking-tight leading-none"
             style={{
-              fontFamily: "'Barlow Condensed', sans-serif",
               fontWeight: 900,
               fontSize: 'clamp(4rem, 10vw, 5.5rem)',
             }}
@@ -219,7 +213,6 @@ export default function LandingPage() {
           <h1
             className="uppercase tracking-tight leading-none"
             style={{
-              fontFamily: "'Barlow Condensed', sans-serif",
               fontWeight: 900,
               fontSize: 'clamp(4rem, 10vw, 5.5rem)',
               color: 'var(--accent)',
@@ -227,7 +220,7 @@ export default function LandingPage() {
           >
             hinged
           </h1>
-          <p className="mt-4 font-['DM_Mono',monospace] text-xs uppercase tracking-[0.25em] text-foreground">
+          <p className="mt-4 text-xs uppercase tracking-[0.25em] text-foreground">
             A game designed to test the limits of your friend group
           </p>
         </motion.div>
@@ -242,16 +235,15 @@ export default function LandingPage() {
               whileTap={{ scale: 0.98 }}
               className="group relative overflow-hidden w-full bg-accent text-black py-4 uppercase tracking-widest transition-opacity"
               style={{
-                fontFamily: "'Barlow Condensed', sans-serif",
                 fontWeight: 800,
                 fontSize: '1.5rem',
                 letterSpacing: '0.15em',
               }}
             >
-              <span className="block transition-transform duration-200 group-hover:-translate-y-15">
+              <span className="block transition-transform duration-300 group-hover:-translate-y-15">
                 Play Now
               </span>
-              <span className="absolute inset-0 flex items-center justify-center translate-y-15 transition-transform duration-200 group-hover:translate-y-0">
+              <span className="absolute inset-0 flex items-center justify-center translate-y-15 transition-transform duration-300 group-hover:translate-y-0">
                 at your own risk
               </span>
             </motion.button>
@@ -260,14 +252,12 @@ export default function LandingPage() {
             <>
               <input
                 type="text"
-                maxLength={20}
-                autoFocus
-                placeholder="USERNAME"
+                maxLength={12}
+                placeholder="Your Username"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                className="w-full bg-card border-2 border-border text-foreground px-4 py-3 outline-none focus:border-accent transition-colors placeholder:text-muted-foreground"
+                className="w-full bg-background border-2 border-foreground text-foreground p-3 outline-none focus:border-accent transition-colors placeholder:text-muted-foreground"
                 style={{
-                  fontFamily: "'Barlow Condensed', sans-serif",
                   fontSize: '1.5rem',
                   letterSpacing: '0.15em',
                 }}
@@ -278,19 +268,18 @@ export default function LandingPage() {
                 onClick={handleSubmit}
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.98 }}
-                className="group relative overflow-hidden w-full bg-accent text-black py-4 uppercase tracking-widest transition-opacity"
+                className="group relative overflow-hidden w-full bg-accent text-black py-3 uppercase tracking-widest transition-opacity"
                 style={{
-                  fontFamily: "'Barlow Condensed', sans-serif",
                   fontWeight: 800,
                   fontSize: '1.5rem',
                   letterSpacing: '0.15em',
                 }}
               >
-                <span className="block transition-transform duration-200 group-hover:-translate-y-15">
+                <span className="block transition-transform duration-300 group-hover:-translate-y-15">
                   Let's Go!
                 </span>
-                <span className="absolute inset-0 flex items-center justify-center translate-y-15 transition-transform duration-200 group-hover:translate-y-0">
-                  fuck it!
+                <span className="absolute inset-0 flex items-center justify-center translate-y-15 transition-transform duration-300 group-hover:translate-y-0">
+                  only because u want to...
                 </span>
               </motion.button>
               {error && <p className="mt-2 text-sm text-destructive">{error}</p>}
@@ -316,7 +305,7 @@ export default function LandingPage() {
             initial={{ opacity: 0, y: 50 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, ease: 'easeOut' }}
-            className="flex flex-col text-center mt-15 gap-5 font-['DM_Mono',monospace] text-xs uppercase tracking-[0.25em] text-secondary-foreground"
+            className="mt-15 flex flex-col gap-5 text-center text-xs uppercase tracking-[0.25em] text-secondary-foreground"
           >
             <p>Disclaimer: This game is not meant to offend anyone in particular</p>
             <p>It is carefully engineered to offend everyone equally.</p>

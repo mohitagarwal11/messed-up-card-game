@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@700;800;900&family=DM+Mono:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;500;700;800;900&display=swap');
 @import 'tailwindcss';
 @source '../**/*.{js,ts,jsx,tsx}';
 
@@ -7,6 +7,7 @@
 
 :root {
   --font-size: 16px;
+  --font-family-base: 'Barlow Condensed', sans-serif;
   --background: #131313;
   --foreground: #e5e2e1;
   --card: #201f1f;
@@ -94,10 +95,18 @@
 
   body {
     @apply bg-background text-foreground;
+    font-family: var(--font-family-base);
   }
 
   html {
     font-size: var(--font-size);
+  }
+
+  button,
+  input,
+  select,
+  textarea {
+    font: inherit;
   }
 
   h1 {
