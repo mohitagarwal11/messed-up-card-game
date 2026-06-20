@@ -93,7 +93,6 @@ export default function ResultsPhase({
       <PhaseCountdown
         phase="results"
         isGameOver={roundResult.isGameOver}
-        winnerName={sortedPlayers[0]?.name}
         className="text-center text-md uppercase"
         phaseEndsAt={phaseEndsAt}
       />

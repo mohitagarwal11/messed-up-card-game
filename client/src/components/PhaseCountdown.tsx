@@ -5,7 +5,6 @@ type PhaseCountdownProps = {
   phase: GamePhase;
   phaseEndsAt: number;
   isGameOver?: boolean;
-  winnerName?: string;
   className?: string;
 };
 
@@ -19,7 +18,6 @@ export function PhaseCountdown({
   phase,
   phaseEndsAt,
   isGameOver = false,
-  winnerName,
   className,
 }: PhaseCountdownProps) {
   const [remaining, setRemaining] = useState(() =>
