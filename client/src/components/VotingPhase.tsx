@@ -1,9 +1,8 @@
-import { useState, useEffect } from 'react';
 import { BlackCard } from './BlackCard';
 import { WhiteCard } from './WhiteCard';
-import { GameHeader } from './GameHeader';
+import { motion } from 'motion/react';
 import type { Submission, Card } from '../../../shared/types';
-import { VOTE_DURATION_MS } from '../../../shared/constants';
+import { PhaseCountdown } from './PhaseCountdown';
 
 interface VotingPhaseProps {
   blackCard: Pick<Card, 'text' | 'pick'>;
@@ -15,6 +14,7 @@ interface VotingPhaseProps {
   playerId: string;
   roundNumber: number;
   totalRounds: number;
+  phaseEndsAt: number;
 }
 
 export default function VotingPhase({
@@ -25,83 +25,54 @@ export default function VotingPhase({
   onVote,
   hasVoted,
   playerId,
-  roundNumber,
-  totalRounds,
+  phaseEndsAt,
 }: VotingPhaseProps) {
-  const [countdown, setCountdown] = useState(VOTE_DURATION_MS / 1000);
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setCountdown((prev) => {
-        if (prev <= 1) {
-          clearInterval(interval);
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-    return () => clearInterval(interval);
-  }, []);
-
   const filteredSubs = submissions.filter((sub) => sub.playerId !== playerId);
 
   return (
-    <div className="flex flex-col h-full bg-[var(--bg)] text-[var(--text)]">
-      <GameHeader
-        text="vote for the best answer"
-        roundNumber={roundNumber}
-        totalRounds={totalRounds}
-      />
-
-      {/* Black card area */}
-      <div className="flex justify-center pt-5">
-        <BlackCard text={blackCard.text} pick={blackCard.pick} />
+    <div className="flex flex-col items-center justify-center space-y-4">
+      <div className="mt-6">
+        <BlackCard text={blackCard.text} />
       </div>
 
-      {/* Submissions grid */}
-      <div className="flex flex-row items-center justify-center gap-3 pt-5">
+      {/* timer and button */}
+      <div className="flex items-center justify-center gap-4">
+        <PhaseCountdown
+          phase="voting"
+          className="text-center text-m uppercase"
+          phaseEndsAt={phaseEndsAt}
+        />
+        <p className="uppercase text-accent">
+          {hasVoted ? 'WAITING FOR OTHERS' : 'PICK THE BEST ANSWER'}
+        </p>
+        <motion.button
+          onClick={onVote}
+          disabled={hasVoted}
+          whileHover={hasVoted ? undefined : { scale: 1.05, letterSpacing: '0.15em' }}
+          whileTap={hasVoted ? undefined : { scale: 0.9 }}
+          transition={{ type: 'spring', stiffness: 300, damping: 10, mass: 1 }}
+          className={`text-2xl w-[clamp(5rem,7vw,10rem)] ${hasVoted ? 'cursor-not-allowed bg-card text-foreground opacity-50' : 'bg-accent font-bold text-black'} uppercase`}
+        >
+          vote
+        </motion.button>
+      </div>
+
+      {/* white hand cards */}
+      <div className="lg:flex lg:flex-row grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
         {filteredSubs.map((sub) => {
           const isSelected = selectedSubmissionId === sub.id;
           return (
             <WhiteCard
               key={sub.id}
               text={sub.card.text}
-              selected={isSelected}
+              isSelected={isSelected}
               onClick={() => {
                 if (!hasVoted) onSelectSubmission(sub.id);
               }}
-              style={{
-                opacity: hasVoted && !isSelected ? 0.4 : 1,
-                filter: hasVoted && !isSelected ? 'grayscale(1)' : 'none',
-                pointerEvents: hasVoted && !isSelected ? 'none' : 'auto',
-              }}
+              tilt={0}
             />
           );
         })}
-      </div>
-
-      {/* Auto-advance countdown */}
-      <div className="text-center py-4 font-mono-ui text-sm uppercase">SUBMIT IN {countdown}s</div>
-
-      {/* Bottom bar */}
-      <div className="flex justify-center items-center px-4 pb-4 gap-4">
-        <p className="font-mono-ui uppercase text-[var(--accent)]">
-          {hasVoted ? 'WAITING FOR OTHERS' : 'PICK THE BEST ANSWER'}
-        </p>
-        <button
-          onClick={onVote}
-          disabled={!selectedSubmissionId || hasVoted}
-          className={`
-            neo-shadow active-press font-display text-xl uppercase px-6 py-3
-            ${
-              !selectedSubmissionId || hasVoted
-                ? 'opacity-50 cursor-not-allowed bg-[var(--surface)] text-[var(--text)]'
-                : 'bg-[var(--accent)] text-black'
-            }
-          `}
-        >
-          VOTE
-        </button>
       </div>
     </div>
   );

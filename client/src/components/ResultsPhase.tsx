@@ -1,9 +1,10 @@
 import type { Submission, RoundResult, Card } from '../../../shared/types';
 import { BlackCard } from './BlackCard';
 import { WhiteCard } from './WhiteCard';
-import { GameHeader } from './GameHeader';
-import { useEffect, useState } from 'react';
-import { RESULTS_DURATION_MS } from '../../../shared/constants';
+import { motion } from 'motion/react';
+import { PhaseCountdown } from './PhaseCountdown';
+import { useWindowSize } from 'react-use';
+import Confetti from 'react-confetti';
 
 interface ResultsPhaseProps {
   roundResult: RoundResult;
@@ -12,56 +13,63 @@ interface ResultsPhaseProps {
   roundNumber: number;
   totalRounds: number;
   onLeave: () => void;
+  phaseEndsAt: number;
 }
 
 export default function ResultsPhase({
   roundResult,
   blackCard,
   submissions,
-  roundNumber,
-  totalRounds,
   onLeave,
+  phaseEndsAt,
 }: ResultsPhaseProps) {
-  const [countdown, setCountdown] = useState(RESULTS_DURATION_MS / 1000);
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setCountdown((prev) => {
-        if (prev <= 1) {
-          clearInterval(interval);
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-    return () => clearInterval(interval);
-  }, []);
-
   const winningSubmission = submissions.find((s) => roundResult.winners.includes(s.playerId));
   const winnerPlayer = roundResult.players.find((p) => p.id === winningSubmission?.playerId);
   const winnerName = winnerPlayer?.name ?? '';
 
   const sortedPlayers = [...roundResult.players].sort((a, b) => b.score - a.score);
 
-  return (
-    <div className="flex flex-col h-full bg-[var(--bg)] text-[var(--text)] overflow-y-auto">
-      <GameHeader text="the winning combo" roundNumber={roundNumber} totalRounds={totalRounds} />
+  const { width, height } = useWindowSize();
 
-      {/* Winning pair */}
-      <div className="flex justify-center items-center gap-8 p-5">
-        <BlackCard text={blackCard.text} pick={blackCard.pick} />
-        <span className="font-display text-4xl text-[var(--accent)]">+</span>
+  return (
+    <div className="flex flex-col items-center justify-center space-y-4">
+      {/* left */}
+      <Confetti
+        width={width}
+        height={height}
+        confettiSource={{ x: 0, y: (2 * height) / 3, w: 0, h: 0 }}
+        initialVelocityX={{ min: 10, max: 25 }}
+        initialVelocityY={{ min: -25, max: -10 }}
+        gravity={0.3}
+        numberOfPieces={100}
+        recycle={false}
+        tweenDuration={1000}
+      />
+      {/* right */}
+      <Confetti
+        width={width}
+        height={height}
+        confettiSource={{ x: width, y: (2 * height) / 3, w: 0, h: 0 }}
+        initialVelocityX={{ min: -25, max: -10 }}
+        initialVelocityY={{ min: -25, max: -10 }}
+        gravity={0.3}
+        numberOfPieces={100}
+        recycle={false}
+        tweenDuration={1000}
+      />
+      <div className="flex items-center justify-center gap-8 mt-6">
+        <BlackCard text={blackCard.text} />
+        <span className="text-4xl text-accent">+</span>
         <div className="flex flex-col items-center pt-5">
-          <WhiteCard text={winningSubmission?.card.text ?? ''} selected />
-          <div className="bg-[var(--accent)] text-black px-4 py-1 font-mono-ui text-sm mt-2">
+          <WhiteCard text={winningSubmission?.card.text ?? ''} tilt={0} />
+          <div className="mt-2 text-2xl text-center w-[clamp(4rem,8vw,10rem)] font-bold text-accent uppercase">
             {winnerName}
           </div>
         </div>
       </div>
 
-      {/* Scoreboard */}
-      <div className="max-w-md mx-auto w-full border-2 border-[var(--border)] mt-4">
-        <div className="bg-[var(--border)] text-black px-4 py-2 font-mono-ui text-xs uppercase">
+      <div className="w-full max-w-lg border-2 border-black">
+        <div className="bg-black text-xl uppercase tracking-[0.15em] font-bold text-primary p-3">
           CURRENT STANDINGS
         </div>
         {sortedPlayers.map((p, idx) => {
@@ -69,40 +77,37 @@ export default function ResultsPhase({
           return (
             <div
               key={p.id}
-              className={`flex justify-between px-4 py-3 border-b border-[var(--border-muted)] ${isWinner ? 'bg-[var(--accent)] text-black' : 'bg-[var(--surface)]'}`}
+              className={`flex justify-between border font-medium leading-none p-2 ${
+                isWinner
+                  ? 'bg-accent text-black border-black text-2xl'
+                  : 'bg-card border-white text-xl'
+              }`}
             >
-              <span className="font-mono-ui">
-                {`${String(idx + 1).padStart(2, '0')} ${p.name}`}
-              </span>
-              <span className="font-display text-xl">{p.score} PTS</span>
+              <span>{`${String(idx + 1).padStart(2, '0')} ${p.name}`}</span>
+              <span className="text-xl">{p.score} PTS</span>
             </div>
           );
         })}
       </div>
 
-      {/* Auto-advance countdown */}
-      <div className="text-center py-4 font-mono-ui text-sm uppercase">
-        {roundResult.isGameOver ? (
-          <>
-            <span className="text-[var(--accent)] text-2xl font-display">GAME OVER</span>
-            <span className="text-[var(--accent)] text-2xl font-display">
-              The winner is: ${sortedPlayers[0].name}
-            </span>
-          </>
-        ) : (
-          `NEXT ROUND IN ${countdown}s`
-        )}
-      </div>
+      <PhaseCountdown
+        phase="results"
+        isGameOver={roundResult.isGameOver}
+        winnerName={sortedPlayers[0]?.name}
+        className="text-center text-md uppercase"
+        phaseEndsAt={phaseEndsAt}
+      />
 
-      <div className="flex justify-center items-center gap-6 mb-10">
-        <button
-          type="button"
-          onClick={onLeave}
-          className="w-full max-w-sm mt-4 font-display text-2xl uppercase py-4 neo-shadow active-press transition-all bg-[var(--accent)] text-black"
-        >
-          Leave Room
-        </button>
-      </div>
+      <motion.button
+        type="button"
+        onClick={onLeave}
+        whileHover={{ scale: 1.05, letterSpacing: '0.1em' }}
+        whileTap={{ scale: 0.9 }}
+        transition={{ type: 'spring', stiffness: 300, damping: 10, mass: 1 }}
+        className={`w-full max-w-sm text-2xl border-2 border-primary bg-black py-3 leading-none font-bold uppercase text-primary transition-colors hover:bg-primary hover:text-black`}
+      >
+        Leave Room
+      </motion.button>
     </div>
   );
 }

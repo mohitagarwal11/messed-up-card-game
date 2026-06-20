@@ -1,94 +1,209 @@
-import { useState, useEffect } from 'react';
 import { BlackCard } from './BlackCard';
-import { GameHeader } from './GameHeader';
 import { WhiteCard } from './WhiteCard';
 import type { Card } from '../../../shared/types';
-import { SUBMIT_DURATION_MS } from '../../../shared/constants';
+import { motion } from 'motion/react';
+import { PhaseCountdown } from './PhaseCountdown';
 
 interface SubmittingPhaseProps {
   blackCard: Pick<Card, 'text' | 'pick'>;
   hand: Card[];
   selectedCardId: number | null;
+  isSubmitDisabled: boolean;
   onSelectCard: (id: number) => void;
   onSubmit: () => void;
-  roundNumber: number;
-  totalRounds: number;
+  phaseEndsAt: number;
 }
 
 export default function SubmittingPhase({
   blackCard,
   hand,
   selectedCardId,
+  isSubmitDisabled,
   onSelectCard,
   onSubmit,
-  roundNumber,
-  totalRounds,
+  phaseEndsAt,
 }: SubmittingPhaseProps) {
-  const [countdown, setCountdown] = useState(SUBMIT_DURATION_MS / 1000);
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setCountdown((prev) => {
-        if (prev <= 1) {
-          clearInterval(interval);
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-    return () => clearInterval(interval);
-  }, []);
-
   return (
-    <div className="flex flex-col h-full bg-[var(--bg)] text-[var(--text)]">
-      <GameHeader
-        text="submit your best answer"
-        roundNumber={roundNumber}
-        totalRounds={totalRounds}
-      />
-
-      {/* Black card area */}
-      <div className="flex justify-center pt-5">
-        <BlackCard text={blackCard.text} pick={blackCard.pick} />
-      </div>
-
-      {/* Auto-advance countdown */}
-      <div className="text-center font-mono-ui text-sm uppercase p-5">SUBMIT IN {countdown}s</div>
-
-      {/* Hand or waiting message */}
-      <div className="flex flex-row items-center justify-center gap-3 flex-wrap">
-        {hand.map((card) => (
-          <WhiteCard
-            key={card.id}
-            text={card.text}
-            selected={selectedCardId === card.id}
-            onClick={() => onSelectCard(card.id)}
-            style={{
-              transform: selectedCardId === card.id ? 'translateY(-20px)' : undefined,
-            }}
-          />
-        ))}
-      </div>
-
-      {/* Submit button */}
-      <div className="flex justify-center items-center px-4 pb-4 gap-4">
-        <button
-          onClick={onSubmit}
-          disabled={selectedCardId === null}
-          className={`
-                w-full max-w-sm mx-auto mt-4
-                font-display text-2xl uppercase py-6
-                neo-shadow active-press transition-all
-                ${
-                  selectedCardId !== null
-                    ? 'bg-[var(--accent)] text-black'
-                    : 'opacity-50 cursor-not-allowed bg-[var(--surface)] text-[var(--text)]'
-                }
-              `}
+    <>
+      {/* desktop view */}
+      <section className="hidden h-[calc(100vh-60px)] overflow-hidden grid-cols-3 lg:block">
+        {/* Left column */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.5, ease: 'easeIn' }}
+          className="flex flex-col"
         >
-          SUBMIT ANSWER
-        </button>
-      </div>
-    </div>
+          {hand[0] && (
+            <div className="absolute left-[16%] top-[5%]">
+              <WhiteCard
+                text={hand[0].text}
+                isSelected={selectedCardId === hand[0].id}
+                onClick={() => onSelectCard(hand[0].id)}
+                tilt={7}
+              />
+            </div>
+          )}
+          {hand[1] && (
+            <div className="absolute left-[5%] top-[30%]">
+              <WhiteCard
+                text={hand[1].text}
+                isSelected={selectedCardId === hand[1].id}
+                onClick={() => onSelectCard(hand[1].id)}
+                tilt={7}
+              />
+            </div>
+          )}
+          {hand[2] && (
+            <div className="absolute left-[16%] top-[55%]">
+              <WhiteCard
+                text={hand[2].text}
+                isSelected={selectedCardId === hand[2].id}
+                onClick={() => onSelectCard(hand[2].id)}
+                tilt={7}
+              />
+            </div>
+          )}
+        </motion.div>
+
+        {/* center column */}
+        <div className="flex flex-col h-[calc(100vh-60px)] items-center justify-center gap-4">
+          <motion.div
+            initial={{ opacity: 0, y: -50 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{
+              duration: 0.5,
+              ease: 'easeIn',
+              type: 'spring',
+              stiffness: 300,
+              damping: 10,
+              mass: 1,
+            }}
+          >
+            <BlackCard text={blackCard.text} />
+          </motion.div>
+          <PhaseCountdown
+            phase="submitting"
+            className="text-center text-m uppercase tracking-wide"
+            phaseEndsAt={phaseEndsAt}
+          />
+          <motion.button
+            initial={{ opacity: 0, y: 50 }}
+            animate={{ opacity: 1, y: 0 }}
+            onClick={onSubmit}
+            disabled={isSubmitDisabled}
+            whileHover={isSubmitDisabled ? undefined : { scale: 1.05, letterSpacing: '0.15em' }}
+            whileTap={isSubmitDisabled ? undefined : { scale: 0.9 }}
+            transition={{
+              duration: 0.5,
+              type: 'spring',
+              stiffness: 300,
+              damping: 10,
+              mass: 1,
+              ease: 'easeIn',
+            }}
+            className={`text-3xl w-[clamp(14rem,12vw,22rem)] py-3 uppercase ${
+              isSubmitDisabled
+                ? 'cursor-not-allowed bg-card text-foreground opacity-50'
+                : 'bg-accent font-bold text-black'
+            }`}
+          >
+            submit
+          </motion.button>
+        </div>
+
+        {/* Right column */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.5, ease: 'easeIn' }}
+          className="flex flex-col"
+        >
+          {hand[3] && (
+            <div className="absolute right-[16%] top-[5%]">
+              <WhiteCard
+                text={hand[3].text}
+                isSelected={selectedCardId === hand[3].id}
+                onClick={() => onSelectCard(hand[3].id)}
+                tilt={-7}
+              />
+            </div>
+          )}
+          {hand[4] && (
+            <div className="absolute right-[5%] top-[30%]">
+              <WhiteCard
+                text={hand[4].text}
+                isSelected={selectedCardId === hand[4].id}
+                onClick={() => onSelectCard(hand[4].id)}
+                tilt={-7}
+              />
+            </div>
+          )}
+          {hand[5] && (
+            <div className="absolute right-[16%] top-[55%]">
+              <WhiteCard
+                text={hand[5].text}
+                isSelected={selectedCardId === hand[5].id}
+                onClick={() => onSelectCard(hand[5].id)}
+                tilt={-7}
+              />
+            </div>
+          )}
+        </motion.div>
+      </section>
+
+      {/* mobile view */}
+      <section className="flex h-screen items-center flex-col overflow-y-auto p-5 lg:hidden">
+        {/* black card */}
+        <motion.div
+          initial={{ opacity: 0, y: -50 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{
+            duration: 0.5,
+            ease: 'easeIn',
+            type: 'spring',
+            stiffness: 300,
+            damping: 10,
+            mass: 1,
+          }}
+        >
+          <BlackCard text={blackCard.text} />
+        </motion.div>
+
+        <PhaseCountdown
+          phase="submitting"
+          className="text-center text-m uppercase tracking-wide"
+          phaseEndsAt={phaseEndsAt}
+        />
+
+        {/* white cards */}
+        <div className="grid grid-cols-2 py-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
+          {hand.map((card) => (
+            <WhiteCard
+              key={card.id}
+              text={card.text}
+              isSelected={selectedCardId == card.id}
+              onClick={() => onSelectCard(card.id)}
+              tilt={0}
+            />
+          ))}
+        </div>
+
+        <motion.button
+          onClick={onSubmit}
+          disabled={isSubmitDisabled}
+          whileHover={isSubmitDisabled ? undefined : { scale: 1.05, letterSpacing: '0.15em' }}
+          whileTap={isSubmitDisabled ? undefined : { scale: 0.9 }}
+          transition={{ type: 'spring', stiffness: 300, damping: 10, mass: 1 }}
+          className={`text-3xl w-[clamp(12rem,12vw,16rem)] py-3 uppercase ${
+            isSubmitDisabled
+              ? 'cursor-not-allowed bg-card text-foreground opacity-50'
+              : 'bg-accent font-bold text-black'
+          }`}
+        >
+          submit
+        </motion.button>
+      </section>
+    </>
   );
 }
