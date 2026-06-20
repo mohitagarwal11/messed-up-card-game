@@ -3,9 +3,6 @@ import LandingPage from './pages/LandingPage';
 import LobbyPage from './pages/LobbyPage';
 import GamePage from './pages/GamePage';
 import RoomPage from './pages/RoomPage';
-import ResultsPhase from './components/ResultsPhase';
-import SubmittingPhase from './components/SubmittingPhase';
-import VotingPhase from './components/VotingPhase';
 import type { GameState, Room, RoundResult, Submission } from '../../shared/types';
 
 type DevPreview =
@@ -18,7 +15,7 @@ type DevPreview =
   | 'game-results';
 
 // Change this value while working on UI previews.
-const DEV_PREVIEW: DevPreview = 'room';
+const DEV_PREVIEW: DevPreview = null;
 const DEV_PLAYER_ID = 'dev-player-id';
 const DEV_GUEST_USER = {
   id: 'guest-dev-1',
@@ -92,6 +89,9 @@ const MOCK_HAND = [
   { id: 1, color: 'white' as const, text: 'A surprise party', pick: 1 },
   { id: 2, color: 'white' as const, text: 'My feelings', pick: 1 },
   { id: 3, color: 'white' as const, text: 'Nothing, forever', pick: 1 },
+  { id: 4, color: 'white' as const, text: 'A surprise party', pick: 1 },
+  { id: 5, color: 'white' as const, text: 'My feelings', pick: 1 },
+  { id: 6, color: 'white' as const, text: 'Nothing, forever', pick: 1 },
 ];
 
 const MOCK_SUBMISSIONS: Submission[] = [
@@ -129,7 +129,6 @@ const MOCK_ROUND_RESULT: RoundResult = {
     { id: 'player-3', name: 'Bob', score: 1, status: 'active', isHost: false },
   ],
   isGameOver: false,
-  phaseEndsAt: '10',
 };
 
 function createMockGameState(
@@ -142,7 +141,7 @@ function createMockGameState(
       roundNumber: 2,
       blackCard: MOCK_BLACK_CARD,
       phase,
-      phaseEndsAt: '10',
+      phaseEndsAt: 10,
       submissions,
       winners: [],
     },
