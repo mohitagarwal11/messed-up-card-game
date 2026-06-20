@@ -45,7 +45,7 @@ export interface RoundState {
   roundNumber: number;
   blackCard: Card;
   phase: GamePhase;
-  phaseEndsAt: string;
+  phaseEndsAt: number;
   submissions: Submission[];
   winners: string[];
 }
@@ -61,7 +61,6 @@ export interface RoundResult {
   winners: string[];
   players: Player[];
   isGameOver: boolean;
-  phaseEndsAt: string | null;
 }
 
 export interface RoomCacheEntry {

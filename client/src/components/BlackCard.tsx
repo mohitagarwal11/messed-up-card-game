@@ -1,30 +1,29 @@
+import { motion } from 'motion/react';
+
 type Props = {
   text: string;
-  pick?: number;
 };
 
-export function BlackCard({ text, pick = 1 }: Props) {
+export function BlackCard({ text }: Props) {
   return (
-    <div
-      className="
-        w-full
-        max-w-[500px]
-        aspect-[2.2/1]
-        bg-surface
-        border-2
-        border-primary-container
-        shadow-[0_0_24px_rgba(166,250,0,0.8)]
-        neo-shadow
-        p-6
-        flex
-        flex-col
-      "
+    <motion.article
+      animate={{
+        opacity: 1,
+        scale: 1,
+        y: [0, -6, 6, 0],
+        rotate: [0, 1.5, -1.5, 0],
+      }}
+      transition={{
+        duration: 8,
+        repeat: Infinity,
+        ease: 'easeInOut',
+        delay: 1,
+      }}
     >
-      <div className="flex-1 flex items-center">
-        <p className="font-display text-primary text-3xl leading-none">{text}</p>
+      <div className="w-[clamp(14rem,12vw,22rem)] aspect-5/7 bg-black justify-between border-2 border-primary p-6 flex flex-col hover:scale-105 hover:-translate-y-2 duration-200">
+        <p className="text-[clamp(1.4rem,1.6vw,2rem)] text-start text-priamry">{text}</p>
+        <p className="text-[clamp(0.65rem,0.9vw,1rem)] text-start text-primary/50">un-hinged</p>
       </div>
-
-      {pick > 1 && <p className="font-body text-sm text-primary-container">Pick {pick}</p>}
-    </div>
+    </motion.article>
   );
 }

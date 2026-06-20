@@ -25,7 +25,12 @@ import {
 } from './cache/roomCache';
 import roomRouter from './routes/routes.rooms';
 import usersRouter from './routes/routes.users';
-import { RESULTS_DURATION_MS, SUBMIT_DURATION_MS, VOTE_DURATION_MS } from '../../shared/constants';
+import {
+  RESULTS_DURATION_MS,
+  SUBMIT_DURATION_MS,
+  VOTE_DURATION_MS,
+  GAME_OVER_DURATION_MS,
+} from '../../shared/constants';
 
 const app = express();
 const httpServer = createServer(app);
@@ -46,6 +51,11 @@ function clearRoomTimer(roomCode: string) {
 }
 
 async function finishRound(roomCode: string, result: RoundResult) {
+  const entry = getRoomCacheEntry(roomCode);
+  if (entry.round) {
+    entry.round.phaseEndsAt =
+      Date.now() + (result.isGameOver ? GAME_OVER_DURATION_MS : RESULTS_DURATION_MS);
+  }
   io.to(roomCode).emit('round:end', result);
 
   if (result.isGameOver) {
@@ -54,7 +64,7 @@ async function finishRound(roomCode: string, result: RoundResult) {
       deleteRoomCacheEntry(roomCode);
       clearRoomTimer(roomCode);
       await setRoomStatus(roomCode, 'finished');
-    }, 10_000);
+    }, GAME_OVER_DURATION_MS);
     roomTimers.set(roomCode, endTimer);
   } else {
     const nextRoundTimer = setTimeout(async () => {
@@ -80,6 +90,7 @@ async function startVotePhase(roomCode: string) {
   const entry = getRoomCacheEntry(roomCode);
   if (!entry.round) return;
   entry.round.phase = 'voting';
+  entry.round.phaseEndsAt = Date.now() + VOTE_DURATION_MS;
   const submissions: Submission[] = entry.round.submissions;
   io.to(roomCode).emit('phase:vote', submissions);
 

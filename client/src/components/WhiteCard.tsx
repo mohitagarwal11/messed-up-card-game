@@ -1,50 +1,40 @@
+import { motion } from 'motion/react';
+
 type Props = {
   text: string;
-  selected?: boolean;
+  isSelected?: boolean;
   onClick?: () => void;
-  style?: React.CSSProperties;
+  tilt: number;
 };
 
-export function WhiteCard({ text, selected, onClick, style }: Props) {
+export function WhiteCard({ text, isSelected, onClick, tilt }: Props) {
   return (
-    <button
-      onClick={onClick}
-      style={style}
-      className={`
-        relative
-        w-[180px]
-        h-[250px]
-        shrink-0
-        bg-primary
-        text-dark
-        border-2
-        rounded-sm
-        p-4
-        text-left
-        transition-all
-        duration-200
-        hover:-translate-y-1
-        ${
-          selected
-            ? 'border-primary-container shadow-[0_0_24px_rgba(166,250,0,0.8)]'
-            : 'border-surface-bright'
-        }
-      `}
+    <motion.article
+      animate={{
+        opacity: 1,
+        scale: 1,
+        y: [0, -6, 0, 4, 0],
+        rotate: [tilt, tilt + 1.5, tilt - 1.5, tilt],
+      }}
+      transition={{
+        duration: 8,
+        repeat: Infinity,
+        ease: 'easeInOut',
+        delay: 1,
+      }}
     >
-      <p className="font-display text-xl text-balance leading-tight">{text}</p>
-
-      <div
-        className={`
-          absolute
-          top-3
-          right-3
-          w-4
-          h-4
-          rounded-full
-          border-2
-          ${selected ? 'bg-primary-container border-primary-container' : 'border-outline'}
-        `}
-      />
-    </button>
+      <motion.button
+        onClick={onClick}
+        whileHover={{ scale: 1.05, translateY: -2 }}
+        whileTap={{ scale: 0.9 }}
+        transition={{ type: 'spring', stiffness: 300, damping: 15 }}
+        className={`w-[clamp(11rem,12vw,20rem)] perspective-distant aspect-5/7 p-4 border-2 border-black ${isSelected ? 'bg-accent -translate-y-2' : 'bg-primary'}`}
+      >
+        <div className="absolute inset-0 flex flex-col justify-between p-4">
+          <p className="text-[clamp(1.4rem,1.6vw,2rem)] text-start text-black">{text}</p>
+          <p className="text-[clamp(0.65rem,0.9vw,1rem)] text-start text-black/50">un-hinged</p>
+        </div>
+      </motion.button>
+    </motion.article>
   );
 }

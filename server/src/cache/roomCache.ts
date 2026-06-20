@@ -16,6 +16,11 @@ import {
   pickRandomWhiteCardIds,
 } from '../data/cards';
 import { io } from '../index';
+import {
+  RESULTS_DURATION_MS,
+  SUBMIT_DURATION_MS,
+  VOTE_DURATION_MS,
+} from '../../../shared/constants';
 
 export const roomCache = new Map<string, RoomCacheEntry>();
 const HAND_SIZE = 6;
@@ -191,22 +196,24 @@ export function getPublicRoomsFromCache() {
     id: string;
     code: string;
     name: string;
+    player_count: number;
     max_players: number;
     total_rounds: number;
-    player_count: number;
+    status: string;
   }[] = [];
 
   for (const entry of roomCache.values()) {
     const { room } = entry;
-    if (room.is_private || room.status !== 'waiting') continue;
+    if (room.is_private) continue;
 
     rooms.push({
       id: room.id,
       code: room.code,
       name: room.name,
+      player_count: room.players.filter((p) => p.status === 'active').length,
       max_players: room.max_players,
       total_rounds: room.total_rounds,
-      player_count: room.players.filter((p) => p.status === 'active').length,
+      status: room.status,
     });
   }
 
@@ -252,7 +259,7 @@ export function startGameInCache(roomCode: string): { roundId: string } {
     roundNumber: 1,
     blackCard,
     phase: 'submitting',
-    phaseEndsAt: '',
+    phaseEndsAt: Date.now() + SUBMIT_DURATION_MS,
     submissions: [],
     winners: [],
   };
@@ -387,8 +394,8 @@ export function cacheResolveRound(roomCode: string): RoundResult {
   if (!isGameOver) {
     round.blackCard = pickRandomBlackCard();
     round.phase = 'submitting';
-    round.phaseEndsAt = '';
+    round.phaseEndsAt = Date.now() + SUBMIT_DURATION_MS;
   }
 
-  return { winners: winnerPlayerIds, players, isGameOver, phaseEndsAt: null };
+  return { winners: winnerPlayerIds, players, isGameOver };
 }
