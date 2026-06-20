@@ -1,4 +1,3 @@
-@import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;500;700;800;900&display=swap');
 @import 'tailwindcss';
 @source '../**/*.{js,ts,jsx,tsx}';
 
