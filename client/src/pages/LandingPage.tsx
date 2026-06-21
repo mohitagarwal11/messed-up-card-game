@@ -4,6 +4,7 @@ import { createGuestUser } from '../api/users';
 import { motion } from 'motion/react';
 import Particles from '../components/Particles';
 import ClickSpark from '../components/ClickSpark';
+import DisclaimerModal from '../components/Disclaimer';
 
 const CARD_AREA = 240 * 160 * 2;
 const MIN_CARD_COUNT = 5;
@@ -110,6 +111,14 @@ export default function LandingPage() {
   const [cards, setCards] = useState<FloatingCard[]>(() =>
     createFloatingCards(window.innerWidth, window.innerHeight),
   );
+  const [showDisclaimer, setShowDisclaimer] = useState(() => {
+    return !localStorage.getItem('acceptedDisclaimer');
+  });
+
+  const acceptDisclaimer = () => {
+    localStorage.setItem('acceptedDisclaimer', 'true');
+    setShowDisclaimer(false);
+  };
 
   // On mount, redirect if guestUser exists
   useEffect(() => {
@@ -164,6 +173,9 @@ export default function LandingPage() {
     };
   }, []);
 
+  if (showDisclaimer) {
+    return <DisclaimerModal open={showDisclaimer} onAccept={acceptDisclaimer} />;
+  }
   return (
     <ClickSpark sparkColor="#ffffff" className="w-full min-h-screen">
       <div className="min-h-screen bg-background flex flex-col items-center justify-center px-6 relative overflow-hidden">
