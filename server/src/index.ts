@@ -33,11 +33,13 @@ import {
   GAME_OVER_DURATION_MS,
 } from '../../shared/constants';
 
+const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:5173';
+
 const app = express();
 const httpServer = createServer(app);
 
 const io = new Server<ClientToServerEvents, ServerToClientEvents>(httpServer, {
-  cors: { origin: 'http://localhost:5173', methods: ['GET', 'POST'] },
+  cors: { origin: CLIENT_URL, methods: ['GET', 'POST'] },
 });
 export { io };
 
@@ -79,7 +81,7 @@ async function finishRound(roomCode: string, result: RoundResult) {
   }
 }
 
-app.use(cors({ origin: 'http://localhost:5173' }));
+app.use(cors({ origin: CLIENT_URL }));
 app.use(express.json());
 
 app.use('/rooms', roomRouter);
@@ -269,5 +271,5 @@ io.on('connection', (socket) => {
 
 const PORT = process.env.PORT || 3001;
 httpServer.listen(PORT, () => {
-  // console.log(`Server running on port ${PORT}`);
+  console.log(`Server running on port ${PORT}`);
 });
