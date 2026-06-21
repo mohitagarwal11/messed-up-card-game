@@ -4,24 +4,43 @@ A real-time multiplayer card game inspired by Cards Against Humanity. Players jo
 
 No sign-up required — guest sessions are created automatically.
 
+## Screenshots
+
+<table>
+  <tr>
+    <td align="center"><img src="./screenshots/landing.png" width="400"/><br/><sub><b>Landing Page</b></sub></td>
+    <td align="center"><img src="./screenshots/lobby.png" width="400"/><br/><sub><b>Lobby Browser</b></sub></td>
+  </tr>
+  <tr>
+    <td align="center"><img src="./screenshots/room.png" width="400"/><br/><sub><b>Room / Waiting Page</b></sub></td>
+    <td align="center"><img src="./screenshots/submitting.png" width="400"/><br/><sub><b>Submitting Phase</b></sub></td>
+  </tr>
+  <tr>
+    <td align="center"><img src="./screenshots/voting.png" width="400"/><br/><sub><b>Voting Phase</b></sub></td>
+    <td align="center"><img src="./screenshots/results.png" width="400"/><br/><sub><b>Results Phase</b></sub></td>
+  </tr>
+</table>
+
 ## Tech Stack
 
-| Layer | Tech |
-|---|---|
-| Frontend | React, TypeScript, Vite, Tailwind CSS, React Router v6 |
-| Backend | Node.js, Express, TypeScript, Socket.io |
-| Database | PostgreSQL (raw SQL, no ORM) |
-| Real-time | Socket.io (persistent WebSocket connections) |
-| Shared | TypeScript types shared across client and server |
+| Layer     | Tech                                                   |
+| --------- | ------------------------------------------------------ |
+| Frontend  | React, TypeScript, Vite, Tailwind CSS, React Router v6 |
+| Backend   | Node.js, Express, TypeScript, Socket.io                |
+| Database  | PostgreSQL (Neon), raw SQL, no ORM                     |
+| Real-time | Socket.io (persistent WebSocket connections)           |
+| Shared    | TypeScript types shared across client and server       |
 
 ## Architecture
 
 Communication is split across two layers:
 
-- **REST** (`/rooms`, `/users`) — handles room creation, joining, guest user provisioning, and other CRUD-style lifecycle operations
+- **REST** (`/rooms`, `/users`) — room creation, joining, guest user provisioning, and other lifecycle operations
 - **WebSocket** (Socket.io) — drives all real-time game events: phase transitions, card submissions, votes, round results, and score updates
 
-The server emits events (`phase:vote`, `round:end`, `game:end`, `room:reset`) that all connected clients in a room receive simultaneously. Server-side `setTimeout` timers enforce submission and voting deadlines automatically if a player is inactive, without breaking room state for other players.
+The server emits events (`phase:vote`, `round:end`, `round:start`, `game:end`, `room:reset:done`) that all connected clients in a room receive simultaneously. Server-side `setTimeout` timers enforce submission and voting deadlines automatically if a player is inactive, without breaking room state for other players.
+
+**State model:** all active gameplay state — rooms, players, hands, rounds, submissions, votes — lives in an in-memory cache (`roomCache`) on the server. The cache is the single source of truth while a room is active; there are no per-action database round-trips during gameplay. Postgres (hosted on Neon) is only touched once, at room creation, purely to persist a row for room counting/bookkeeping. There is no live schema for rounds, hands, submissions, or votes — that data only ever exists in memory and is discarded when a room is torn down.
 
 A `shared/types/index.ts` module is imported by both the client and server, enforcing strict TypeScript contract compatibility across all Socket.io event payloads and REST responses at compile time.
 
@@ -29,7 +48,8 @@ A `shared/types/index.ts` module is imported by both the client and server, enfo
 client/          # React frontend
 server/          # Express + Socket.io backend
   src/
-    db/          # Raw SQL data-access layer
+    cache/       # In-memory room cache (source of truth during gameplay)
+    db/          # Minimal raw SQL layer (room creation/bookkeeping only)
     routes/      # REST routers
     index.ts     # Server bootstrap + socket event handlers
 shared/
@@ -42,13 +62,8 @@ shared/
 2. Create a new room or join via public lobby / private room code
 3. Host starts the game
 4. Each round: black card is shown → players submit a white card → all players vote → winner revealed → scores updated
-5. Game ends after the configured number of rounds
-
-## Database Schema
-
-Core tables: `rooms`, `room_players`, `cards`, `rounds`, `submissions`, `votes`, `player_hands`, `round_winners`
-
-All queries are raw SQL via the `postgres` npm package.
+5. Game ends after the configured number of rounds, or resets early if active players drop below 3 mid-game
+6. Host can manually reset the room back to the lobby between games; host privileges automatically transfer if the current host leaves
 
 ## Local Setup
 
@@ -62,7 +77,7 @@ npm run install:all
 
 # Set up environment variables
 cp server/.env.example server/.env
-# Add your DATABASE_URL to server/.env
+# Add your DATABASE_URL to server/.env (Neon Postgres connection string)
 
 # Run client and server concurrently
 npm run dev
@@ -70,13 +85,8 @@ npm run dev
 
 Client runs on `http://localhost:5173`, server on `http://localhost:3001`.
 
-You'll need a PostgreSQL database and the schema applied before running. Schema migration scripts are not currently included in the repo.
+You'll need a Neon (or any Postgres) database — the only table needed is for room bookkeeping at creation time.
 
 ## Status
 
-Core gameplay is fully functional locally — room management, public/private lobbies, join-by-code, game phases, server-side timers, and scoring all work end-to-end.
-
-In progress:
-- Caching layer to reduce database round-trips
-- Deployment configuration
-- Schema migration tooling
+Core gameplay is fully functional — room management, public/private lobbies, join-by-code, in-memory cache-driven game phases, server-stamped timers, host reassignment, auto-reset on low player count, and scoring all work end-to-end.
