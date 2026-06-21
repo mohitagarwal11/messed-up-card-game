@@ -8,19 +8,10 @@ import type {
   GameState,
   RoomCacheEntry,
   RoundResult,
-} from '../../../shared/types';
-import {
-  getWhiteCard,
-  pickRandomBlackCard,
-  pickRandomWhiteCard,
-  pickRandomWhiteCardIds,
-} from '../data/cards';
+} from '@shared/types';
+import { getWhiteCard, pickRandomBlackCard, pickRandomWhiteCardIds } from '../data/cards';
 import { io } from '../index';
-import {
-  RESULTS_DURATION_MS,
-  SUBMIT_DURATION_MS,
-  VOTE_DURATION_MS,
-} from '../../../shared/constants';
+import { SUBMIT_DURATION_MS } from '@shared/constants';
 
 export const roomCache = new Map<string, RoomCacheEntry>();
 const HAND_SIZE = 6;

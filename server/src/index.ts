@@ -9,7 +9,7 @@ import type {
   Room,
   Submission,
   RoundResult,
-} from '../../shared/types/index';
+} from '@shared/types';
 import { setRoomStatus } from './db/room';
 import { pickRandomWhiteCard } from './data/cards';
 import {
@@ -31,7 +31,7 @@ import {
   SUBMIT_DURATION_MS,
   VOTE_DURATION_MS,
   GAME_OVER_DURATION_MS,
-} from '../../shared/constants';
+} from '@shared/constants';
 
 const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:5173';
 
