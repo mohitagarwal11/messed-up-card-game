@@ -32,7 +32,7 @@ const MOCK_PUBLIC_ROOMS: PublicRoom[] = [
     player_count: 6,
     max_players: 8,
     total_rounds: 10,
-    status: 'WAITING',
+    status: 'waiting',
   },
   {
     id: '2',
@@ -50,7 +50,7 @@ const MOCK_PUBLIC_ROOMS: PublicRoom[] = [
     player_count: 2,
     max_players: 4,
     total_rounds: 10,
-    status: 'WAITING',
+    status: 'waiting',
   },
   {
     id: '4',
@@ -59,7 +59,7 @@ const MOCK_PUBLIC_ROOMS: PublicRoom[] = [
     player_count: 8,
     max_players: 8,
     total_rounds: 20,
-    status: 'WAITING',
+    status: 'waiting',
   },
   {
     id: '5',
@@ -68,7 +68,7 @@ const MOCK_PUBLIC_ROOMS: PublicRoom[] = [
     player_count: 5,
     max_players: 8,
     total_rounds: 15,
-    status: 'WAITING',
+    status: 'waiting',
   },
   {
     id: '6',
@@ -86,7 +86,7 @@ const MOCK_PUBLIC_ROOMS: PublicRoom[] = [
     player_count: 3,
     max_players: 4,
     total_rounds: 5,
-    status: 'WAITING',
+    status: 'waiting',
   },
   {
     id: '8',
@@ -95,7 +95,7 @@ const MOCK_PUBLIC_ROOMS: PublicRoom[] = [
     player_count: 8,
     max_players: 8,
     total_rounds: 10,
-    status: 'WAITING',
+    status: 'waiting',
   },
 ];
 
