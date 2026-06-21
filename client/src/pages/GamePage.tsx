@@ -1,7 +1,7 @@
 import { useEffect, useReducer } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { getGameState, leaveRoom } from '../api/rooms';
-import socket, { joinSocketRoom, leaveSocketRoom } from '../socket/index';
+import { getGameState, leaveRoom, resetRoom } from '../api/rooms';
+import socket, { joinSocketRoom, leaveSocketRoom, resetSocketRoom } from '../socket/index';
 import SubmittingPhase from '../components/SubmittingPhase';
 import VotingPhase from '../components/VotingPhase';
 import ResultsPhase from '../components/ResultsPhase';
@@ -34,8 +34,8 @@ type GamePageState = {
 
 type GamePageAction =
   | { type: 'hydrate'; gameState: GameState }
-  | { type: 'phase:vote'; submissions: Submission[] }
-  | { type: 'round:end'; roundResult: RoundResult }
+  | { type: 'phase:vote'; submissions: Submission[]; phaseEndsAt: number }
+  | { type: 'round:end'; roundResult: RoundResult; phaseEndsAt: number }
   | { type: 'round:start'; gameState: GameState; phase: GamePhase }
   | { type: 'hand:update'; hand: Card[] }
   | { type: 'select:card'; selectedCardId: number }
@@ -82,12 +82,28 @@ function gamePageReducer(state: GamePageState, action: GamePageAction): GamePage
         submissions: action.submissions,
         selectedSubmissionId: null,
         hasVoted: false,
+        gameState: state.gameState
+          ? {
+              ...state.gameState,
+              round: { ...state.gameState.round, phase: 'voting', phaseEndsAt: action.phaseEndsAt },
+            }
+          : null,
       };
     case 'round:end':
       return {
         ...state,
         phase: 'results',
         roundResult: action.roundResult,
+        gameState: state.gameState
+          ? {
+              ...state.gameState,
+              round: {
+                ...state.gameState.round,
+                phase: 'results',
+                phaseEndsAt: action.phaseEndsAt,
+              },
+            }
+          : null,
       };
     case 'round:start':
       return {
@@ -142,7 +158,10 @@ export default function GamePage({
   const navigate = useNavigate();
   const { code } = useParams<{ code: string }>();
   const isPreview = Boolean(previewGameState);
-  const guestUser = localStorage.getItem('guestUser') ?? previewPlayerId ?? null;
+  const guestUser = JSON.parse(localStorage.getItem('guestUser') ?? 'null') as {
+    id: string;
+    name: string;
+  } | null;
   const playerId = localStorage.getItem('playerId') ?? previewPlayerId ?? null;
   const roomCode = code ?? 'PREVIEW';
   const [state, dispatch] = useReducer(
@@ -183,12 +202,12 @@ export default function GamePage({
 
     joinSocketRoom(roomCode, playerId);
 
-    const handlePhaseVote = (nextSubmissions: Submission[]) => {
-      dispatch({ type: 'phase:vote', submissions: nextSubmissions });
+    const handlePhaseVote = (nextSubmissions: Submission[], phaseEndsAt: number) => {
+      dispatch({ type: 'phase:vote', submissions: nextSubmissions, phaseEndsAt });
     };
 
-    const handleRoundEnd = (result: RoundResult) => {
-      dispatch({ type: 'round:end', roundResult: result });
+    const handleRoundEnd = (result: RoundResult, phaseEndsAt: number) => {
+      dispatch({ type: 'round:end', roundResult: result, phaseEndsAt });
     };
 
     const handleGameEnd = () => {
@@ -196,14 +215,13 @@ export default function GamePage({
       navigate('/lobby');
     };
 
-    const handleRoomReset = () => {
-      leaveSocketRoom(roomCode);
-      navigate('/lobby');
-    };
-
-    const handleRoundStart = (round: GameState['round']) => {
+    const handleRoundStart = (round: GameState['round'], phaseEndsAt: number) => {
       getGameState(roomCode, playerId!).then((data) => {
-        dispatch({ type: 'round:start', gameState: data, phase: round.phase });
+        dispatch({
+          type: 'round:start',
+          gameState: { ...data, round: { ...data.round, phaseEndsAt } },
+          phase: round.phase,
+        });
       });
     };
 
@@ -211,20 +229,25 @@ export default function GamePage({
       dispatch({ type: 'hand:update', hand });
     };
 
+    const handleRoomReset = () => {
+      leaveSocketRoom(roomCode);
+      navigate(`/lobby/${roomCode}`);
+    };
+
     socket.on('phase:vote', handlePhaseVote);
     socket.on('round:end', handleRoundEnd);
     socket.on('game:end', handleGameEnd);
-    socket.on('room:reset', handleRoomReset);
     socket.on('round:start', handleRoundStart);
     socket.on('hand:update', handleHandUpdate);
+    socket.on('room:reset:done', handleRoomReset);
 
     return () => {
       socket.off('phase:vote', handlePhaseVote);
       socket.off('round:end', handleRoundEnd);
       socket.off('game:end', handleGameEnd);
-      socket.off('room:reset', handleRoomReset);
       socket.off('round:start', handleRoundStart);
       socket.off('hand:update', handleHandUpdate);
+      socket.off('room:reset:done', handleRoomReset);
     };
   }, [isPreview, navigate, roomCode, playerId]);
 
@@ -253,6 +276,16 @@ export default function GamePage({
     leaveSocketRoom(roomCode);
     await leaveRoom(roomCode, playerId);
     navigate('/lobby');
+  };
+
+  const handleResetRoom = async () => {
+    if (isPreview || !playerId) return;
+    if (gameState?.hostId !== playerId) {
+      console.log('Only host can reset room!');
+      return;
+    }
+    await resetRoom(roomCode);
+    resetSocketRoom(roomCode);
   };
 
   if (!gameState) {
@@ -288,8 +321,8 @@ export default function GamePage({
           </span>
           {/* top right username and avatar? */}
           <div className="flex items-center gap-4">
-            <span className="text-2xl uppercase text-primary">{guestUser ?? ''}</span>
-            <LetterAvatar name={guestUser ?? ''} />
+            <span className="text-2xl uppercase text-primary">{guestUser?.name ?? ''}</span>
+            <LetterAvatar name={guestUser?.name ?? ''} />
           </div>
         </header>
 
@@ -325,22 +358,18 @@ export default function GamePage({
               }
               hasVoted={hasVoted}
               onVote={submitVote}
-              blackCard={gameState.round.blackCard}
               playerId={playerId!}
-              roundNumber={gameState.round.roundNumber}
-              totalRounds={gameState.totalRounds}
-              phaseEndsAt={gameState.round.phaseEndsAt}
+              gameState={gameState}
             />
           )}
           {phase === 'results' && roundResult && (
             <ResultsPhase
               roundResult={roundResult}
-              blackCard={gameState.round.blackCard}
               submissions={submissions}
-              roundNumber={gameState.round.roundNumber}
-              totalRounds={gameState.totalRounds}
               onLeave={handleLeaveRoom}
-              phaseEndsAt={gameState.round.phaseEndsAt}
+              onReset={handleResetRoom}
+              gameState={gameState}
+              playerId={playerId!}
             />
           )}
         </main>

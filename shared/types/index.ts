@@ -54,7 +54,7 @@ export interface GameState {
   round: RoundState;
   hand: Card[];
   totalRounds: number;
-  hostId?: string;
+  hostId: string;
 }
 
 export interface RoundResult {
@@ -75,15 +75,15 @@ export interface RoomCacheEntry {
 // ─── Socket Event Maps ───────────────────────────────────────
 export interface ServerToClientEvents {
   'room:state': (room: Room) => void;
-  'round:start': (round: RoundState) => void;
-  'phase:vote': (submissions: Submission[]) => void;
-  'round:end': (result: RoundResult) => void;
+  'round:start': (round: RoundState, phaseEndsAt: number) => void;
+  'phase:vote': (submissions: Submission[], phaseEndsAt: number) => void;
+  'round:end': (result: RoundResult, phaseEndsAt: number) => void;
   'game:end': (finalScores: Player[]) => void;
   'player:joined': (player: Player) => void;
   'player:left': (playerId: string) => void;
-  'room:reset': () => void;
-  error: (message: string) => void;
   'hand:update': (hand: Card[]) => void;
+  'room:reset:done': (roomCode: string) => void;
+  error: (message: string) => void;
 }
 
 export interface ClientToServerEvents {
@@ -92,4 +92,5 @@ export interface ClientToServerEvents {
   'game:start': (roomCode: string, playerId: string) => void;
   'card:submit': (roomCode: string, cardId: number, playerId: string) => void;
   'vote:cast': (roomCode: string, submissionId: string, playerId: string) => void;
+  'room:reset': (roomCode: string) => void;
 }

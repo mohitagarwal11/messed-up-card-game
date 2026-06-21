@@ -1,4 +1,4 @@
-import type { Submission, RoundResult, Card } from '../../../shared/types';
+import type { Submission, RoundResult, GameState } from '../../../shared/types';
 import { BlackCard } from './BlackCard';
 import { WhiteCard } from './WhiteCard';
 import { motion } from 'motion/react';
@@ -8,20 +8,20 @@ import Confetti from 'react-confetti';
 
 interface ResultsPhaseProps {
   roundResult: RoundResult;
-  blackCard: Pick<Card, 'text' | 'pick'>;
   submissions: Submission[];
-  roundNumber: number;
-  totalRounds: number;
   onLeave: () => void;
-  phaseEndsAt: number;
+  onReset: () => void;
+  gameState: GameState;
+  playerId: string;
 }
 
 export default function ResultsPhase({
   roundResult,
-  blackCard,
   submissions,
   onLeave,
-  phaseEndsAt,
+  onReset,
+  gameState,
+  playerId,
 }: ResultsPhaseProps) {
   const winningSubmission = submissions.find((s) => roundResult.winners.includes(s.playerId));
   const winnerPlayer = roundResult.players.find((p) => p.id === winningSubmission?.playerId);
@@ -57,8 +57,22 @@ export default function ResultsPhase({
         recycle={false}
         tweenDuration={1000}
       />
-      <div className="flex items-center justify-center gap-8 mt-6">
-        <BlackCard text={blackCard.text} />
+
+      {/* final winner display */}
+      <motion.div
+        initial={{ opacity: 0, scale: 0.5 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{
+          duration: 0.5,
+          type: 'spring',
+          stiffness: 300,
+          damping: 10,
+          mass: 1,
+          ease: 'easeIn',
+        }}
+        className="flex items-center justify-center gap-8 mt-6"
+      >
+        <BlackCard text={gameState.round.blackCard.text} />
         <span className="text-4xl text-accent">+</span>
         <div className="flex flex-col items-center pt-5">
           <WhiteCard text={winningSubmission?.card.text ?? ''} tilt={0} />
@@ -66,10 +80,23 @@ export default function ResultsPhase({
             {winnerName}
           </div>
         </div>
-      </div>
+      </motion.div>
 
-      <div className="w-full max-w-lg border-2 border-black">
-        <div className="bg-black text-xl uppercase tracking-[0.15em] font-bold text-primary p-3">
+      {/* leaderboard stadndings */}
+      <motion.div
+        initial={{ opacity: 0, scale: 0.5 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{
+          duration: 0.5,
+          type: 'spring',
+          stiffness: 300,
+          damping: 10,
+          mass: 1,
+          ease: 'easeIn',
+        }}
+        className="w-full max-w-lg"
+      >
+        <div className="bg-card text-xl uppercase tracking-[0.15em] font-bold text-primary p-3 border border-primary">
           CURRENT STANDINGS
         </div>
         {sortedPlayers.map((p, idx) => {
@@ -77,10 +104,8 @@ export default function ResultsPhase({
           return (
             <div
               key={p.id}
-              className={`flex justify-between border font-medium leading-none p-2 ${
-                isWinner
-                  ? 'bg-accent text-black border-black text-2xl'
-                  : 'bg-card border-white text-xl'
+              className={`flex justify-between font-medium leading-none p-2 border border-primary ${
+                isWinner ? 'bg-accent text-black text-2xl' : 'bg-card text-xl'
               }`}
             >
               <span>{`${String(idx + 1).padStart(2, '0')} ${p.name}`}</span>
@@ -88,25 +113,56 @@ export default function ResultsPhase({
             </div>
           );
         })}
-      </div>
+      </motion.div>
 
       <PhaseCountdown
         phase="results"
         isGameOver={roundResult.isGameOver}
         className="text-center text-md uppercase"
-        phaseEndsAt={phaseEndsAt}
+        phaseEndsAt={gameState.round.phaseEndsAt}
       />
 
-      <motion.button
-        type="button"
-        onClick={onLeave}
-        whileHover={{ scale: 1.05, letterSpacing: '0.1em' }}
-        whileTap={{ scale: 0.9 }}
-        transition={{ type: 'spring', stiffness: 300, damping: 10, mass: 1 }}
-        className={`w-full max-w-sm text-2xl border-2 border-primary bg-black py-3 leading-none font-bold uppercase text-primary transition-colors hover:bg-primary hover:text-black`}
-      >
-        Leave Room
-      </motion.button>
+      <div className="flex flex-row gap-4 w-full justify-center">
+        <motion.button
+          initial={{ opacity: 0, scale: 0.5 }}
+          animate={{ opacity: 1, scale: 1 }}
+          onClick={onLeave}
+          whileHover={{ scale: 1.05, letterSpacing: '0.15em' }}
+          whileTap={{ scale: 0.9 }}
+          transition={{
+            duration: 0.5,
+            type: 'spring',
+            stiffness: 300,
+            damping: 10,
+            mass: 1,
+            ease: 'easeIn',
+          }}
+          className="text-3xl w-[clamp(14rem,12vw,22rem)] py-3 uppercase font-bold border-2 border-primary bg-black text-primary transition-colors hover:bg-primary hover:text-black"
+        >
+          Leave Room
+        </motion.button>
+
+        {roundResult.players.find((p) => p.isHost)?.id === playerId && (
+          <motion.button
+            initial={{ opacity: 0, scale: 0.5 }}
+            animate={{ opacity: 1, scale: 1 }}
+            onClick={onReset}
+            whileHover={{ scale: 1.05, letterSpacing: '0.15em' }}
+            whileTap={{ scale: 0.9 }}
+            transition={{
+              duration: 0.5,
+              type: 'spring',
+              stiffness: 300,
+              damping: 10,
+              mass: 1,
+              ease: 'easeIn',
+            }}
+            className="text-3xl w-[clamp(14rem,12vw,22rem)] py-3 uppercase font-bold bg-accent text-black"
+          >
+            Reset Room
+          </motion.button>
+        )}
+      </div>
     </div>
   );
 }

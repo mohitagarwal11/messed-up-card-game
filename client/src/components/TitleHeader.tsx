@@ -1,17 +1,11 @@
 import { motion } from 'motion/react';
-import { useNavigate } from 'react-router-dom';
 
 export default function TitleHeader() {
-  const navigate = useNavigate();
   return (
     <motion.button
       whileHover={{ scale: 1.05 }}
       whileTap={{ scale: 0.9 }}
       transition={{ type: 'spring', stiffness: 300, damping: 10, mass: 1 }}
-      onClick={() => {
-        localStorage.clear();
-        navigate('/');
-      }}
     >
       <motion.h2
         className="text-[clamp(2.2rem,2.4vw,2.8rem)] uppercase leading-none text-primary"

@@ -1,25 +1,31 @@
-import { io, Socket } from 'socket.io-client'
-import type { ServerToClientEvents, ClientToServerEvents } from '../../../shared/types'
+import { io, Socket } from 'socket.io-client';
+import type { ServerToClientEvents, ClientToServerEvents } from '../../../shared/types';
 
 const socket: Socket<ServerToClientEvents, ClientToServerEvents> = io('http://localhost:3001', {
-  autoConnect: false
-})
+  autoConnect: false,
+});
 
 export function ensureSocketConnected() {
   if (!socket.connected) {
-    socket.connect()
+    socket.connect();
   }
 }
 
 export function joinSocketRoom(roomCode: string, playerId: string) {
-  ensureSocketConnected()
-  socket.emit('room:join', roomCode, playerId)
+  ensureSocketConnected();
+  socket.emit('room:join', roomCode, playerId);
 }
 
 export function leaveSocketRoom(roomCode: string) {
   if (socket.connected) {
-    socket.emit('room:leave', roomCode)
+    socket.emit('room:leave', roomCode);
   }
 }
 
-export default socket
+export function resetSocketRoom(roomCode: string) {
+  if (socket.connected) {
+    socket.emit('room:reset', roomCode);
+  }
+}
+
+export default socket;

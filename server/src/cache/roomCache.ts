@@ -238,7 +238,7 @@ export function getGameStateFromCache(roomCode: string, playerId: string): GameS
     round: { ...round, submissions: [...round.submissions], winners: [...round.winners] },
     hand: [...(entry.hands[playerId] ?? [])],
     totalRounds: entry.room.total_rounds,
-    hostId: entry.room.host_id ?? undefined,
+    hostId: entry.room.players.find((p) => p.isHost)?.id ?? '',
   };
 }
 

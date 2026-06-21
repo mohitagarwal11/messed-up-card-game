@@ -22,6 +22,7 @@ import {
   deleteRoomCacheEntry,
   removeStaleSocketMapping,
   startGameInCache,
+  resetRoomInCache,
 } from './cache/roomCache';
 import roomRouter from './routes/routes.rooms';
 import usersRouter from './routes/routes.users';
@@ -55,8 +56,8 @@ async function finishRound(roomCode: string, result: RoundResult) {
   if (entry.round) {
     entry.round.phaseEndsAt =
       Date.now() + (result.isGameOver ? GAME_OVER_DURATION_MS : RESULTS_DURATION_MS);
+    io.to(roomCode).emit('round:end', result, entry.round.phaseEndsAt);
   }
-  io.to(roomCode).emit('round:end', result);
 
   if (result.isGameOver) {
     const endTimer = setTimeout(async () => {
@@ -71,10 +72,10 @@ async function finishRound(roomCode: string, result: RoundResult) {
       if (!roomCache.has(roomCode)) return;
       const updatedEntry = getRoomCacheEntry(roomCode);
       if (!updatedEntry.round) return;
-      io.to(roomCode).emit('round:start', updatedEntry.round);
+      updatedEntry.round.phaseEndsAt = Date.now() + SUBMIT_DURATION_MS;
+      io.to(roomCode).emit('round:start', updatedEntry.round, updatedEntry.round.phaseEndsAt);
       await startSubmitTimer(roomCode, updatedEntry.round.id);
     }, RESULTS_DURATION_MS);
-    roomTimers.set(roomCode, nextRoundTimer);
   }
 }
 
@@ -92,7 +93,7 @@ async function startVotePhase(roomCode: string) {
   entry.round.phase = 'voting';
   entry.round.phaseEndsAt = Date.now() + VOTE_DURATION_MS;
   const submissions: Submission[] = entry.round.submissions;
-  io.to(roomCode).emit('phase:vote', submissions);
+  io.to(roomCode).emit('phase:vote', submissions, entry.round.phaseEndsAt);
 
   const voteTimer = setTimeout(async () => {
     const votedIds = entry.votes.map((v) => v.voterId);
@@ -247,6 +248,16 @@ io.on('connection', (socket) => {
     } catch (err) {
       console.error('voteCast error:', err);
       socket.emit('error', 'Failed to cast vote');
+    }
+  });
+
+  socket.on('room:reset', async (roomCode: string) => {
+    try {
+      resetRoomInCache(roomCode);
+      io.to(roomCode).emit('room:reset:done', roomCode);
+    } catch (err) {
+      console.error('resetRoom error:', err);
+      socket.emit('error', 'Failed to reset room');
     }
   });
 

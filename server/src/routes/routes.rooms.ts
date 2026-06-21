@@ -161,7 +161,7 @@ router.post('/:code/leave', async (req, res) => {
   try {
     const { wasReset } = leaveRoomCache(req.params.code, playerId);
     if (wasReset) {
-      io.to(req.params.code).emit('room:reset');
+      io.to(req.params.code).emit('room:reset:done', req.params.code);
     }
     res.status(200).json({ ok: true, wasReset });
   } catch (error) {
@@ -191,7 +191,11 @@ router.get('/:code/game-state', async (req, res) => {
   } catch (error) {
     console.error(error);
     const message = error instanceof Error ? error.message : 'Failed to get game state.';
-    if (message === 'Room not found' || message === 'No active round in cache' || message === 'Player not in room') {
+    if (
+      message === 'Room not found' ||
+      message === 'No active round in cache' ||
+      message === 'Player not in room'
+    ) {
       return res.status(404).json({ message });
     }
     return res.status(500).json({ message: 'Failed to get game state.' });
