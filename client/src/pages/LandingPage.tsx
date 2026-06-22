@@ -5,6 +5,7 @@ import { motion } from 'motion/react';
 import Particles from '../components/Particles';
 import ClickSpark from '../components/ClickSpark';
 import DisclaimerModal from '../components/Disclaimer';
+import { Logo } from '../components/Logo';
 
 const CARD_AREA = 240 * 160 * 2;
 const MIN_CARD_COUNT = 5;
@@ -219,16 +220,24 @@ export default function LandingPage() {
 
         <main className="relative w-full max-w-md items-center text-center justify-center z-10">
           {/* the name and its substitle */}
-          <motion.div
+          {/* <motion.div
             initial={{ opacity: 0, y: -50 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, ease: 'easeIn' }}
+            whileHover={{ scale: 1.1, }}
+            transition={{
+              type: 'spring',
+              stiffness: 300,
+              damping: 10,
+              mass: 1,
+              duration: 0.5,
+              ease: 'easeIn',
+            }}
           >
             <h1
-              className="text-foreground uppercase tracking-tight leading-none"
+              className="text-primary uppercase tracking-tight leading-none"
               style={{
                 fontWeight: 900,
-                fontSize: 'clamp(4rem, 10vw, 5.5rem)',
+                fontSize: 'clamp(4rem, 10vw, 7rem)',
               }}
             >
               un-
@@ -237,16 +246,19 @@ export default function LandingPage() {
               className="uppercase tracking-tight leading-none"
               style={{
                 fontWeight: 900,
-                fontSize: 'clamp(4rem, 10vw, 5.5rem)',
+                fontSize: 'clamp(4rem, 10vw, 7rem)',
                 color: 'var(--accent)',
               }}
             >
               hinged
             </h1>
-            <p className="mt-4 text-xs uppercase tracking-[0.25em] text-foreground">
-              A game designed to test the limits of your friend group
-            </p>
-          </motion.div>
+          </motion.div> */}
+
+          <Logo />
+
+          <p className="mt-4 text-xs uppercase tracking-[0.25em] text-foreground">
+            A game designed to test the limits of your friend group
+          </p>
 
           {/* buttons and username */}
           <div className="mt-14 flex w-full max-w-md flex-col gap-4">
@@ -324,10 +336,14 @@ export default function LandingPage() {
               initial={{ opacity: 0, y: 50 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, ease: 'easeIn' }}
-              className="mt-15 flex flex-col gap-5 text-center text-xs uppercase tracking-[0.25em] text-secondary-foreground"
+              className="mt-10 flex flex-col gap-5 text-center text-m uppercase tracking-[0.25em] text-primary"
             >
-              <p>Disclaimer: This game is not meant to offend anyone in particular</p>
-              <p>It is carefully engineered to offend everyone equally.</p>
+              <p className="font-bold text-accent">Before you start!!!</p>
+              <p>
+                It is more fun when you and your friends are on a call together or chatting (until
+                the chat system is out)
+              </p>
+              {/* <p>(until the chat system is out)</p> */}
             </motion.div>
           )}
         </main>
