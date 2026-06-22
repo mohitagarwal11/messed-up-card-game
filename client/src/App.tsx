@@ -60,6 +60,7 @@ const MOCK_ROOM: Room = {
       score: 0,
       status: 'active',
       isHost: false,
+      isBot: true,
     },
     {
       id: 'player-5',
@@ -74,6 +75,7 @@ const MOCK_ROOM: Room = {
       score: 1,
       status: 'active',
       isHost: false,
+      isBot: true,
     },
   ],
 };

@@ -85,6 +85,7 @@ export function initRoomCache(
     score: 0,
     status: 'active',
     isHost: true,
+    isBot: false,
   };
 
   const room = mapDbRowToRoom(dbRoom, [host]);
@@ -138,6 +139,7 @@ export function joinRoomCache(
     score: 0,
     status: 'active',
     isHost: false,
+    isBot: false,
   };
 
   room.players.push(player);
@@ -166,7 +168,7 @@ export function leaveRoomCache(
   delete entry.sockets[playerId];
 
   if (wasHost) {
-    const nextHost = room.players.find((p) => p.status === 'active');
+    const nextHost = room.players.find((p) => p.status === 'active' && !p.isBot);
     if (nextHost) {
       room.players.forEach((p) => {
         p.isHost = p.id === nextHost.id;
@@ -174,11 +176,14 @@ export function leaveRoomCache(
     }
   }
 
-  const playerCount = getActivePlayers(entry).length;
+  const activePlayers = getActivePlayers(entry);
+  const playerCount = activePlayers.length;
+  const hasNoHumans = activePlayers.every((p) => p.isBot);
   let wasReset = false;
 
-  if (playerCount === 0) {
+  if (playerCount === 0 || hasNoHumans) {
     roomCache.delete(roomCode);
+    return { playerCount: 0, wasReset: false };
   } else if (roomStatus === 'in_progress' && playerCount < 3) {
     resetRoomInCache(roomCode);
     wasReset = true;
@@ -291,7 +296,6 @@ export function resetRoomInCache(roomCode: string): void {
   }
 }
 
-/** Remove a disconnected socket from all cached room mappings. */
 export function removeStaleSocketMapping(socketId: string): void {
   for (const entry of roomCache.values()) {
     for (const [playerId, sid] of Object.entries(entry.sockets)) {
@@ -302,19 +306,16 @@ export function removeStaleSocketMapping(socketId: string): void {
   }
 }
 
-/** Retrieve a cache entry – throws if missing. */
 export function getRoomCacheEntry(roomCode: string): RoomCacheEntry {
   const entry = roomCache.get(roomCode);
   if (!entry) throw new Error('Room not found');
   return entry;
 }
 
-/** Delete a cache entry when the game ends or the room is empty. */
 export function deleteRoomCacheEntry(roomCode: string): void {
   roomCache.delete(roomCode);
 }
 
-/** Update cache when a player submits a card. */
 export function cacheSubmitCard(
   roomCode: string,
   roundId: string,
@@ -337,13 +338,11 @@ export function cacheSubmitCard(
   requireRound(entry).submissions.push(submission);
 }
 
-/** Update cache when a vote is cast. */
 export function cacheCastVote(roomCode: string, voterId: string, submissionId: string): void {
   const entry = getRoomCacheEntry(roomCode);
   entry.votes.push({ voterId, submissionId });
 }
 
-/** Resolve the current round using only cached data. */
 export function cacheResolveRound(roomCode: string): RoundResult {
   const entry = getRoomCacheEntry(roomCode);
   const round = requireRound(entry);
@@ -399,4 +398,63 @@ export function cacheResolveRound(roomCode: string): RoundResult {
   }
 
   return { winners: winnerPlayerIds, players, isGameOver };
+}
+
+export function addBotToCache(roomCode: string): Player {
+  const entry = getRoomCacheEntry(roomCode);
+  const { room } = entry;
+
+  if (room.status !== 'waiting') {
+    throw new Error('Cannot add bots once the game has started');
+  }
+
+  const activeCount = getActivePlayers(entry).length;
+  if (activeCount >= room.max_players) {
+    throw new Error('Room is full');
+  }
+
+  const usedNumbers = room.players
+    .filter((p) => p.isBot)
+    .map((p) => parseInt(p.name.replace('Bot ', ''), 10))
+    .filter((n) => !isNaN(n));
+
+  let botNumber = 1;
+  while (usedNumbers.includes(botNumber)) {
+    botNumber++;
+  }
+
+  const bot: Player = {
+    id: randomUUID(),
+    name: `Bot ${botNumber}`,
+    score: 0,
+    status: 'active',
+    isHost: false,
+    isBot: true,
+  };
+
+  room.players.push(bot);
+  return bot;
+}
+
+export function removeBotFromCache(roomCode: string): void {
+  const entry = getRoomCacheEntry(roomCode);
+  const { room } = entry;
+
+  if (room.status !== 'waiting') {
+    throw new Error('Cannot remove bots once the game has started');
+  }
+
+  const bots = room.players.filter((p) => p.isBot);
+  if (bots.length === 0) {
+    throw new Error('No bots to remove');
+  }
+
+  const highestBot = bots.reduce((highest, current) => {
+    const highestNum = parseInt(highest.name.replace('Bot ', ''), 10);
+    const currentNum = parseInt(current.name.replace('Bot ', ''), 10);
+    return currentNum > highestNum ? current : highest;
+  });
+
+  room.players = room.players.filter((p) => p.id !== highestBot.id);
+  delete entry.hands[highestBot.id];
 }

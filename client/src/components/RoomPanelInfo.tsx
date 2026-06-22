@@ -11,6 +11,8 @@ type RoomInfoPanelProps = {
   onCopyCode: () => void;
   onLeave: () => void;
   onStart: () => void;
+  onAddBot: () => void;
+  onRemoveBot: () => void;
 };
 
 export default function RoomInfoPanel({
@@ -22,6 +24,8 @@ export default function RoomInfoPanel({
   onCopyCode,
   onLeave,
   onStart,
+  onAddBot,
+  onRemoveBot,
 }: RoomInfoPanelProps) {
   const canStart = room.players.length >= 3 && !starting;
   const [isCodeHover, setCodeHover] = useState(false);
@@ -107,23 +111,44 @@ export default function RoomInfoPanel({
         )}
 
         {isHost && (
-          <motion.button
-            type="button"
-            disabled={!canStart}
-            onClick={onStart}
-            whileHover={{ scale: 1.05, letterSpacing: '0.1em' }}
-            whileTap={{ scale: 0.9 }}
-            transition={{ type: 'spring', stiffness: 300, damping: 10, mass: 1 }}
-            className={`w-full text-3xl font-bold bg-accent text-black uppercase border-2 py-3 leading-none ${
-              canStart
-                ? 'bg-accent text-black active:translate-y-0.5'
-                : 'cursor-not-allowed border-secondary bg-secondary text-secondary-foreground'
-            }`}
-          >
-            {starting ? 'Starting...' : 'Start Game'}
-          </motion.button>
+          <>
+            <motion.button
+              type="button"
+              disabled={!canStart}
+              onClick={onStart}
+              whileHover={{ scale: 1.05, letterSpacing: '0.1em' }}
+              whileTap={{ scale: 0.9 }}
+              transition={{ type: 'spring', stiffness: 300, damping: 10, mass: 1 }}
+              className={`w-full text-3xl font-bold bg-accent text-black uppercase border-2 py-3 leading-none ${
+                canStart
+                  ? 'bg-accent text-black active:translate-y-0.5'
+                  : 'cursor-not-allowed border-secondary bg-secondary text-secondary-foreground'
+              }`}
+            >
+              {starting ? 'Starting...' : 'Start Game'}
+            </motion.button>
+            <div className="flex flex-row gap-3">
+              <motion.button
+                onClick={onAddBot}
+                whileHover={{ scale: 1.05, letterSpacing: '0.1em' }}
+                whileTap={{ scale: 0.9 }}
+                transition={{ type: 'spring', stiffness: 300, damping: 10, mass: 1 }}
+                className="w-full text-2xl border-2 border-primary bg-black py-3 leading-none font-bold uppercase text-primary transition-colors hover:bg-primary hover:text-black"
+              >
+                Add a bot
+              </motion.button>
+              <motion.button
+                onClick={onRemoveBot}
+                whileHover={{ scale: 1.05, letterSpacing: '0.1em' }}
+                whileTap={{ scale: 0.9 }}
+                transition={{ type: 'spring', stiffness: 300, damping: 10, mass: 1 }}
+                className="w-full text-2xl border-2 border-primary bg-black py-3 leading-none font-bold uppercase text-primary transition-colors hover:bg-primary hover:text-black"
+              >
+                Remove a bot
+              </motion.button>
+            </div>
+          </>
         )}
-
         <motion.button
           type="button"
           onClick={onLeave}
