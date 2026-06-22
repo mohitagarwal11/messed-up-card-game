@@ -1,4 +1,4 @@
-# Messed Up Cards
+# Un-Hinged
 
 A real-time multiplayer card game inspired by Cards Against Humanity. Players join public or private lobbies and compete through submit → vote → results round cycles, with all game state synchronized across clients via WebSockets.
 
@@ -87,6 +87,6 @@ Client runs on `http://localhost:5173`, server on `http://localhost:3001`.
 
 You'll need a Neon (or any Postgres) database — the only table needed is for room bookkeeping at creation time.
 
-## Status
+## Credits
 
-Core gameplay is fully functional — room management, public/private lobbies, join-by-code, in-memory cache-driven game phases, server-stamped timers, host reassignment, auto-reset on low player count, and scoring all work end-to-end.
+Card content is sourced from the official [Cards Against Humanity](https://www.cardsagainsthumanity.com/) base deck, released under the [Creative Commons BY-NC-SA 2.0](https://creativecommons.org/licenses/by-nc-sa/2.0/) license. Cards have been filtered for content tiers and are used here on a non-commercial basis. Un-Hinged is an independent project and is not affiliated with or endorsed by Cards Against Humanity, LLC.
