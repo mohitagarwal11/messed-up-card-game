@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { getLobbyState, leaveRoom } from '../api/rooms';
+import { getLobbyState, leaveRoom, addBot, removeBot } from '../api/rooms';
 import type { Room } from '../../../shared/types';
 import socket, { joinSocketRoom, leaveSocketRoom } from '../socket/index';
 import { motion } from 'motion/react';
@@ -136,6 +136,24 @@ export default function RoomPage({ previewRoom, previewPlayerId }: RoomPageProps
     socket.emit('game:start', roomCode, playerId);
   };
 
+  const handleAddBot = async () => {
+    if (isPreview || !roomCode) return;
+    try {
+      await addBot(roomCode);
+    } catch (err) {
+      console.error('Failed to add bot:', err);
+    }
+  };
+
+  const handleRemoveBot = async () => {
+    if (isPreview || !roomCode) return;
+    try {
+      await removeBot(roomCode);
+    } catch (err) {
+      console.error('Failed to remove bot:', err);
+    }
+  };
+
   if (!room) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background text-foreground">
@@ -220,6 +238,8 @@ export default function RoomPage({ previewRoom, previewPlayerId }: RoomPageProps
                 onCopyCode={handleCopyCode}
                 onLeave={handleLeave}
                 onStart={handleStart}
+                onAddBot={handleAddBot}
+                onRemoveBot={handleRemoveBot}
               />
             </motion.div>
           </section>
@@ -235,6 +255,8 @@ export default function RoomPage({ previewRoom, previewPlayerId }: RoomPageProps
               onCopyCode={handleCopyCode}
               onLeave={handleLeave}
               onStart={handleStart}
+              onAddBot={handleAddBot}
+              onRemoveBot={handleRemoveBot}
             />
 
             <div className="mt-6 grid grid-cols-2 gap-4 pb-8 sm:grid-cols-3 md:grid-cols-4">
@@ -243,6 +265,7 @@ export default function RoomPage({ previewRoom, previewPlayerId }: RoomPageProps
                   key={player.id}
                   player={player}
                   backText={PLAYER_CARD_BACKTEXT[index % PLAYER_CARD_BACKTEXT.length]}
+                  onRemoveBot={handleRemoveBot}
                 />
               ))}
             </div>

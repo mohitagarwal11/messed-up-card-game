@@ -45,6 +45,14 @@ const io = new Server<ClientToServerEvents, ServerToClientEvents>(httpServer, {
 });
 export { io };
 
+app.use(cors({ origin: CLIENT_URL }));
+app.use(express.json());
+
+app.use('/rooms', roomRouter);
+app.use('/users', usersRouter);
+
+app.get('/health', (_req, res) => res.json({ ok: true }));
+
 async function finishRound(roomCode: string, result: RoundResult) {
   const entry = getRoomCacheEntry(roomCode);
   if (entry.round) {
@@ -70,16 +78,9 @@ async function finishRound(roomCode: string, result: RoundResult) {
       io.to(roomCode).emit('round:start', updatedEntry.round, updatedEntry.round.phaseEndsAt);
       await startSubmitTimer(roomCode, updatedEntry.round.id);
     }, RESULTS_DURATION_MS);
+    roomTimers.set(roomCode, nextRoundTimer);
   }
 }
-
-app.use(cors({ origin: CLIENT_URL }));
-app.use(express.json());
-
-app.use('/rooms', roomRouter);
-app.use('/users', usersRouter);
-
-app.get('/health', (_req, res) => res.json({ ok: true }));
 
 async function startVotePhase(roomCode: string) {
   const entry = getRoomCacheEntry(roomCode);
@@ -88,6 +89,24 @@ async function startVotePhase(roomCode: string) {
   entry.round.phaseEndsAt = Date.now() + VOTE_DURATION_MS;
   const submissions: Submission[] = entry.round.submissions;
   io.to(roomCode).emit('phase:vote', submissions, entry.round.phaseEndsAt);
+
+  const activeBots = entry.room.players.filter((p) => p.isBot && p.status === 'active');
+  for (const bot of activeBots) {
+    const alreadyVoted = entry.votes.some((v) => v.voterId === bot.id);
+    if (alreadyVoted) continue;
+    const possibleSubs = entry.round.submissions.filter((s) => s.playerId !== bot.id);
+    if (possibleSubs.length === 0) continue;
+    const randomSub = possibleSubs[Math.floor(Math.random() * possibleSubs.length)];
+    cacheCastVote(roomCode, bot.id, randomSub.id);
+  }
+
+  const activePlayerCount = entry.room.players.filter((p) => p.status === 'active').length;
+  if (entry.votes.length >= activePlayerCount) {
+    clearRoomTimer(roomCode);
+    const result = cacheResolveRound(roomCode);
+    await finishRound(roomCode, result);
+    return;
+  }
 
   const voteTimer = setTimeout(async () => {
     const votedIds = entry.votes.map((v) => v.voterId);
@@ -112,6 +131,25 @@ async function startVotePhase(roomCode: string) {
 }
 
 async function startSubmitTimer(roomCode: string, roundId: string) {
+  const entry = getRoomCacheEntry(roomCode);
+  if (entry.round && entry.round.id === roundId) {
+    const bots = entry.room.players.filter((p) => p.isBot && p.status === 'active');
+    for (const bot of bots) {
+      const alreadySubmitted = entry.round.submissions.some((s) => s.playerId === bot.id);
+      if (alreadySubmitted) continue;
+      const hand = entry.hands[bot.id];
+      if (hand && hand.length > 0) {
+        const card = hand[Math.floor(Math.random() * hand.length)];
+        cacheSubmitCard(roomCode, roundId, bot.id, card.id, card, true);
+      }
+    }
+    const activeCount = entry.room.players.filter((p) => p.status === 'active').length;
+    if (entry.round.submissions.length >= activeCount) {
+      await startVotePhase(roomCode);
+      return;
+    }
+  }
+
   const submitTimer = setTimeout(async () => {
     const entry = getRoomCacheEntry(roomCode);
     if (!entry.round || entry.round.id !== roundId) return;

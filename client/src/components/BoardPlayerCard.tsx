@@ -38,28 +38,26 @@ export default function BoardPlayerCard({ player, backText, layout }: BoardPlaye
           transition={{ duration: 0.5, ease: 'easeIn' }}
         >
           <div className="absolute inset-0 flex flex-col justify-between border-2 border-background bg-primary p-4 text-background backface-hidden">
+            {/* name and host tag */}
             <div className="flex items-start justify-between gap-3">
-              {player.isHost ? (
-                <span className="border-2 border-background px-2 py-1 text-xs font-bold tracking-[0.18em] uppercase">
-                  Host
-                </span>
-              ) : (
-                <span className="px-2 py-1 text-xs font-bold tracking-[0.18em] uppercase">
-                  Player
-                </span>
-              )}
+              <span
+                className={`px-2 py-1 text-s font-bold tracking-[0.18em] uppercase ${
+                  player.isHost ? 'border-2 border-background' : ''
+                }`}
+              >
+                {player.isHost ? 'Host' : player.isBot ? 'Bot' : 'Player'}
+              </span>
             </div>
 
             <div className="space-y-3">
-              <p className="text-xs tracking-[0.2em] uppercase text-background/65">
-                Seat Locked In
-              </p>
+              <p className="text-xs tracking-[0.2em] uppercase text-background/65">Hover here!</p>
               <p className="truncate text-[clamp(1.6rem,2.4vw,2.5rem)] leading-[0.9] font-bold uppercase">
                 {player.name}
               </p>
             </div>
           </div>
 
+          {/* back text */}
           <div
             className="absolute inset-0 flex border-2 border-background bg-primary p-4 text-background backface-hidden"
             style={{ transform: 'rotateY(180deg)' }}

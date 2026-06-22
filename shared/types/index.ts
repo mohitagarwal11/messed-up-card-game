@@ -10,6 +10,7 @@ export interface Player {
   score: number;
   status: PlayerStatus;
   isHost: boolean;
+  isBot?: boolean;
 }
 
 export interface Card {

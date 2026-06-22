@@ -46,3 +46,12 @@ export async function getGameState(roomCode: string, playerId: string) {
   });
   return response.data;
 }
+
+export async function addBot(roomCode: string) {
+  const response = await client.post(`/rooms/${roomCode}/bots`);
+  return response.data;
+}
+
+export async function removeBot(roomCode: string) {
+  await client.post(`/rooms/${roomCode}/bots/remove`);
+}

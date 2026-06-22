@@ -13,10 +13,13 @@ import {
   deleteRoomCacheEntry,
   roomTimers,
   clearRoomTimer,
+  addBotToCache,
+  removeBotFromCache,
   type DbRoomRow,
 } from '../cache/roomCache';
 import { io } from '../index';
 import { ROOM_TIMEOUT_MS } from '@shared/constants';
+import { Room } from '@shared/types';
 
 const router = Router();
 
@@ -180,6 +183,44 @@ router.post('/:code/leave', async (req, res) => {
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Failed to leave room.' });
+  }
+});
+
+router.post('/:code/bots', async (req, res) => {
+  try {
+    const bot = addBotToCache(req.params.code);
+    const room = getRoomFromCache(req.params.code);
+    io.to(req.params.code).emit('room:state', room as Room);
+    res.status(201).json({ bot });
+  } catch (error) {
+    console.error(error);
+    const message = error instanceof Error ? error.message : 'Failed to add bot.';
+    if (message === 'Room not found') {
+      return res.status(404).json({ message });
+    }
+    if (message === 'Room is full' || message === 'Cannot add bots once the game has started') {
+      return res.status(409).json({ message });
+    }
+    res.status(500).json({ message: 'Failed to add bot.' });
+  }
+});
+
+router.post('/:code/bots/remove', async (req, res) => {
+  try {
+    removeBotFromCache(req.params.code);
+    const room = getRoomFromCache(req.params.code);
+    io.to(req.params.code).emit('room:state', room as Room);
+    res.status(200).json({ ok: true });
+  } catch (error) {
+    console.error(error);
+    const message = error instanceof Error ? error.message : 'Failed to remove bot.';
+    if (message === 'No bots to remove' || message === 'Room not found') {
+      return res.status(404).json({ message });
+    }
+    if (message === 'Cannot remove bots once the game has started') {
+      return res.status(409).json({ message });
+    }
+    res.status(500).json({ message: 'Failed to remove bot.' });
   }
 });
 
