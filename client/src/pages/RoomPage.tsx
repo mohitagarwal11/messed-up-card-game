@@ -265,7 +265,6 @@ export default function RoomPage({ previewRoom, previewPlayerId }: RoomPageProps
                   key={player.id}
                   player={player}
                   backText={PLAYER_CARD_BACKTEXT[index % PLAYER_CARD_BACKTEXT.length]}
-                  onRemoveBot={handleRemoveBot}
                 />
               ))}
             </div>
