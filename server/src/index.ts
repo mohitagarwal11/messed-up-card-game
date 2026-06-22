@@ -23,6 +23,8 @@ import {
   removeStaleSocketMapping,
   startGameInCache,
   resetRoomInCache,
+  roomTimers,
+  clearRoomTimer,
 } from './cache/roomCache';
 import roomRouter from './routes/routes.rooms';
 import usersRouter from './routes/routes.users';
@@ -42,16 +44,6 @@ const io = new Server<ClientToServerEvents, ServerToClientEvents>(httpServer, {
   cors: { origin: CLIENT_URL, methods: ['GET', 'POST'] },
 });
 export { io };
-
-const roomTimers = new Map<string, NodeJS.Timeout>();
-
-function clearRoomTimer(roomCode: string) {
-  const t = roomTimers.get(roomCode);
-  if (t) {
-    clearTimeout(t);
-    roomTimers.delete(roomCode);
-  }
-}
 
 async function finishRound(roomCode: string, result: RoundResult) {
   const entry = getRoomCacheEntry(roomCode);
@@ -171,6 +163,7 @@ io.on('connection', (socket) => {
         return;
       }
 
+      clearRoomTimer(roomCode);
       await setRoomStatus(roomCode, 'in_progress');
       const { roundId } = startGameInCache(roomCode);
       const room = getRoomFromCache(roomCode) as Room;

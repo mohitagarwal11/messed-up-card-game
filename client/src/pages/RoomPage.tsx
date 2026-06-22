@@ -102,8 +102,15 @@ export default function RoomPage({ previewRoom, previewPlayerId }: RoomPageProps
       }
     });
 
+    socket.on('room:closing', (message) => {
+      leavingRef.current = true;
+      alert(message);
+      navigate('/lobby');
+    });
+
     return () => {
       socket.off('room:state');
+      socket.off('room:closing');
     };
   }, [code, isPreview, navigate]);
 

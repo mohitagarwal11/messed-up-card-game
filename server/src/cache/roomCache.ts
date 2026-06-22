@@ -14,6 +14,16 @@ import { io } from '../index';
 import { SUBMIT_DURATION_MS } from '@shared/constants';
 
 export const roomCache = new Map<string, RoomCacheEntry>();
+export const roomTimers = new Map<string, NodeJS.Timeout>();
+
+export function clearRoomTimer(roomCode: string): void {
+  const t = roomTimers.get(roomCode);
+  if (t) {
+    clearTimeout(t);
+    roomTimers.delete(roomCode);
+  }
+}
+
 const HAND_SIZE = 6;
 
 export type DbRoomRow = {

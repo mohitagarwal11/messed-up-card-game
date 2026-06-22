@@ -83,6 +83,7 @@ export interface ServerToClientEvents {
   'player:left': (playerId: string) => void;
   'hand:update': (hand: Card[]) => void;
   'room:reset:done': (roomCode: string) => void;
+  'room:closing': (message: string) => void;
   error: (message: string) => void;
 }
 

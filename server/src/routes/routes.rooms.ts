@@ -9,9 +9,14 @@ import {
   getGameStateFromCache,
   getRoomFromCache,
   resetRoomInCache,
+  roomCache,
+  deleteRoomCacheEntry,
+  roomTimers,
+  clearRoomTimer,
   type DbRoomRow,
 } from '../cache/roomCache';
 import { io } from '../index';
+import { ROOM_TIMEOUT_MS } from '@shared/constants';
 
 const router = Router();
 
@@ -39,6 +44,14 @@ router.post('/', async (req, res) => {
     });
 
     initRoomCache(room as DbRoomRow, { id: trimmedHostId, name: trimmedPlayerName });
+
+    const timeoutTimer = setTimeout(() => {
+      if (!roomCache.has(room.code)) return;
+      io.to(room.code).emit('room:closing', 'Room timed out and is closing.');
+      deleteRoomCacheEntry(room.code);
+      clearRoomTimer(room.code);
+    }, ROOM_TIMEOUT_MS);
+    roomTimers.set(room.code, timeoutTimer);
 
     const lobby = getLobbyStateFromCache(room.code);
     const hostPlayer = lobby.players.find((p) => p.isHost)!;
