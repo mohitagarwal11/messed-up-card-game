@@ -9,7 +9,6 @@ type DisclaimerModalProps = {
 
 export default function DisclaimerModal({ open, onAccept }: DisclaimerModalProps) {
   const handleLeave = () => {
-    alert('You have chosen to preserve your innocence.\nRedirecting to rehabilitation...');
     setTimeout(() => {
       window.location.href = 'https://www.youtube.com/watch?v=hvL1339luv0';
     }, 100);
