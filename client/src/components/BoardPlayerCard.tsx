@@ -1,6 +1,7 @@
 import { motion } from 'motion/react';
 import type { Player } from '../../../shared/types';
 import type { BoardPlayerLayout } from './BoardLayout';
+import { SoundUtil } from '../soundUtil';
 
 type BoardPlayerCardProps = {
   player: Player;
@@ -35,6 +36,7 @@ export default function BoardPlayerCard({ player, backText, layout }: BoardPlaye
           animate={{ scale: 1, opacity: 1, translateY: 0, translateX: 0, rotate: 0 }}
           className="relative aspect-5/7 w-full transform-3d"
           whileHover={{ rotateY: 180 }}
+          onMouseEnter={() => SoundUtil.play('CardFlip', { volume: 0.5 })}
           transition={{ duration: 0.5, ease: 'easeIn' }}
         >
           <div className="absolute inset-0 flex flex-col justify-between border-2 border-background bg-primary p-4 text-background backface-hidden">

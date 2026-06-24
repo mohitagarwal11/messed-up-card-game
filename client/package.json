@@ -11,6 +11,7 @@
   "dependencies": {
     "@tailwindcss/vite": "^4.3.1",
     "axios": "^1.17.0",
+    "howler": "^2.2.4",
     "motion": "^12.40.0",
     "ogl": "^1.0.11",
     "react": "^18.2.0",
@@ -22,6 +23,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@types/howler": "^2.2.13",
     "@types/node": "^25.9.2",
     "@types/react": "^18.2.48",
     "@types/react-dom": "^18.2.18",

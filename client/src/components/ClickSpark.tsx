@@ -1,4 +1,5 @@
 import React, { useRef, useEffect, useCallback } from 'react';
+import { SoundUtil } from '../soundUtil';
 
 interface ClickSparkProps {
   sparkColor?: string;
@@ -135,6 +136,7 @@ const ClickSpark: React.FC<ClickSparkProps> = ({
   }, [sparkColor, sparkSize, sparkRadius, sparkCount, duration, easeFunc, extraScale]);
 
   const handleClick = (e: React.MouseEvent<HTMLDivElement>): void => {
+    SoundUtil.play('Pop', { volume: 0.25 });
     const canvas = canvasRef.current;
     if (!canvas) return;
     const rect = canvas.getBoundingClientRect();

@@ -141,6 +141,7 @@ function gamePageReducer(state: GamePageState, action: GamePageAction): GamePage
     case 'submit:vote':
       return {
         ...state,
+        phase: 'waiting',
         hasVoted: true,
       };
     default:
