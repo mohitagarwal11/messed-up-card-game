@@ -8,16 +8,16 @@ No sign-up required — guest sessions are created automatically.
 
 <table>
   <tr>
-    <td align="center"><img src="./screenshots/landing.png" width="400"/><br/><sub><b>Landing Page</b></sub></td>
-    <td align="center"><img src="./screenshots/lobby.png" width="400"/><br/><sub><b>Lobby Browser</b></sub></td>
+    <td align="center"><img src="./assets/screenshots/landing.png" width="400"/><br/><sub><b>Landing Page</b></sub></td>
+    <td align="center"><img src="./assets//screenshots/lobby.png" width="400"/><br/><sub><b>Lobby Browser</b></sub></td>
   </tr>
   <tr>
-    <td align="center"><img src="./screenshots/room.png" width="400"/><br/><sub><b>Room / Waiting Page</b></sub></td>
-    <td align="center"><img src="./screenshots/submitting.png" width="400"/><br/><sub><b>Submitting Phase</b></sub></td>
+    <td align="center"><img src="./assets//screenshots/room.png" width="400"/><br/><sub><b>Room / Waiting Page</b></sub></td>
+    <td align="center"><img src="./assets//screenshots/submitting.png" width="400"/><br/><sub><b>Submitting Phase</b></sub></td>
   </tr>
   <tr>
-    <td align="center"><img src="./screenshots/voting.png" width="400"/><br/><sub><b>Voting Phase</b></sub></td>
-    <td align="center"><img src="./screenshots/results.png" width="400"/><br/><sub><b>Results Phase</b></sub></td>
+    <td align="center"><img src="./assets//screenshots/voting.png" width="400"/><br/><sub><b>Voting Phase</b></sub></td>
+    <td align="center"><img src="./assets//screenshots/results.png" width="400"/><br/><sub><b>Results Phase</b></sub></td>
   </tr>
 </table>
 
