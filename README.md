@@ -2,6 +2,7 @@
 
 A real-time multiplayer card game inspired by Cards Against Humanity. Players join public or private lobbies and compete through submit → vote → results round cycles, with all game state synchronized across clients via WebSockets.
 
+LINK: https://unhinged-game.vercel.app/
 No sign-up required — guest sessions are created automatically.
 
 ## Screenshots
